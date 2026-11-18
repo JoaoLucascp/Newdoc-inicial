@@ -23,7 +23,6 @@ NewDoc\Database::resetConnection();
 try {
     $pdo = NewDoc\Database::connection();
     $migrations = NewDoc\MigrationRunner::migrate($pdo);
-
     $expectedMigrations = [
         '001_initial_schema.sql',
         '002_newsic_schema.sql',
@@ -34,7 +33,6 @@ try {
         $migrations === $expectedMigrations,
         'As migrations iniciais, Newsic e Newbot deveriam ser aplicadas.'
     );
-    
     expect(NewDoc\MigrationRunner::migrate($pdo) === [], 'Migrations aplicadas não devem ser repetidas.');
 
     $now = date('Y-m-d H:i:s');
