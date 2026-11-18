@@ -9,6 +9,7 @@ use NewDoc\Controllers\AuthController;
 use NewDoc\Controllers\CompanyController;
 use NewDoc\Controllers\DashboardController;
 use NewDoc\Controllers\DocumentController;
+use NewDoc\Controllers\NewbotController;
 use NewDoc\Controllers\NewsicController;
 use PDO;
 
@@ -97,6 +98,36 @@ final class Application
         }
         if (preg_match('#^/newsic/([1-9][0-9]*)$#', $path, $matches) === 1) {
             $controller = new NewsicController($this->pdo);
+            if ($method === 'GET') {
+                return $controller->show((int) $matches[1]);
+            }
+            if ($method === 'POST') {
+                return $controller->update((int) $matches[1]);
+            }
+        }
+        if ($path === '/newbot' && $method === 'GET') {
+            return (new NewbotController($this->pdo))->index();
+        }
+        if (preg_match('#^/empresas/([1-9][0-9]*)/newbot$#', $path, $matches) === 1) {
+            $controller = new NewbotController($this->pdo);
+            if ($method === 'GET') {
+                return $controller->company((int) $matches[1]);
+            }
+            if ($method === 'POST') {
+                return $controller->store((int) $matches[1]);
+            }
+        }
+        if (preg_match('#^/empresas/([1-9][0-9]*)/newbot/nova$#', $path, $matches) === 1 && $method === 'GET') {
+            return (new NewbotController($this->pdo))->create((int) $matches[1]);
+        }
+        if (preg_match('#^/newbot/([1-9][0-9]*)/editar$#', $path, $matches) === 1 && $method === 'GET') {
+            return (new NewbotController($this->pdo))->edit((int) $matches[1]);
+        }
+        if (preg_match('#^/newbot/([1-9][0-9]*)/dados$#', $path, $matches) === 1 && $method === 'POST') {
+            return (new NewbotController($this->pdo))->saveChild((int) $matches[1]);
+        }
+        if (preg_match('#^/newbot/([1-9][0-9]*)$#', $path, $matches) === 1) {
+            $controller = new NewbotController($this->pdo);
             if ($method === 'GET') {
                 return $controller->show((int) $matches[1]);
             }
