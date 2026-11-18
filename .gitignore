@@ -1,0 +1,8 @@
+.env
+/storage/database/*
+!/storage/database/.gitkeep
+/storage/documents/*
+!/storage/documents/.gitkeep
+/storage/backups/*
+!/storage/backups/.gitkeep
+/vendor/

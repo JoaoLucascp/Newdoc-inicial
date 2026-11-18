@@ -1,0 +1,21 @@
+{
+  "name": "newtel/newdoc",
+  "description": "Sistema corporativo NewDOC para gestão segura de empresas e documentos.",
+  "type": "project",
+  "require": {
+    "php": "^8.3",
+    "ext-pdo": "*",
+    "ext-pdo_sqlite": "*",
+    "ext-sodium": "*",
+    "ext-fileinfo": "*"
+  },
+  "autoload": {
+    "psr-4": {
+      "NewDoc\\": "app/"
+    }
+  },
+  "scripts": {
+    "migrate": "php bin/migrate.php",
+    "test": "php tests/run.php"
+  }
+}
