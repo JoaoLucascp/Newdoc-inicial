@@ -150,6 +150,112 @@ try {
     expect($audit['old_value'] === null && $audit['new_value'] === null, 'Auditoria sensível deve omitir valores.');
     expect((int) $audit['sensitive_field'] === 1, 'Auditoria deve marcar o campo como sensível.');
 
+    $secondCompanyId = (int) $pdo->query('SELECT id FROM companies ORDER BY id DESC LIMIT 1')->fetchColumn();
+    $newbotInsert = $pdo->prepare(
+        'INSERT INTO newbot_instances (company_id, instance_name, status, created_at, updated_at)
+         VALUES (:company_id, :instance_name, :status, :created_at, :updated_at)'
+    );
+    $newbotInsert->execute([
+        'company_id' => $companyId,
+        'instance_name' => 'Newbot principal',
+        'status' => 'ativo',
+        'created_at' => $now,
+        'updated_at' => $now,
+    ]);
+    $newbotId = (int) $pdo->lastInsertId();
+    $duplicateNewbotRejected = false;
+    try {
+        $newbotInsert->execute([
+            'company_id' => $companyId,
+            'instance_name' => 'Newbot duplicado',
+            'status' => 'ativo',
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+    } catch (PDOException) {
+        $duplicateNewbotRejected = true;
+    }
+    expect($duplicateNewbotRejected, 'Uma empresa não pode ter mais de uma instância Newbot ativa.');
+
+    $newbotInsert->execute([
+        'company_id' => $companyId,
+        'instance_name' => 'Newbot histórico',
+        'status' => 'inativo',
+        'created_at' => $now,
+        'updated_at' => $now,
+    ]);
+    $newbotInsert->execute([
+        'company_id' => $secondCompanyId,
+        'instance_name' => 'Newbot de outra empresa',
+        'status' => 'ativo',
+        'created_at' => $now,
+        'updated_at' => $now,
+    ]);
+    expect(
+        (int) $pdo->query('SELECT COUNT(*) FROM newbot_instances')->fetchColumn() === 3,
+        'Registros históricos e instâncias de outras empresas devem ser permitidos no Newbot.'
+    );
+
+    $invalidNewbotStatusRejected = false;
+    try {
+        $newbotInsert->execute([
+            'company_id' => $secondCompanyId,
+            'instance_name' => 'Status inválido',
+            'status' => 'qualquer',
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+    } catch (PDOException) {
+        $invalidNewbotStatusRejected = true;
+    }
+    expect($invalidNewbotStatusRejected, 'O status da instância Newbot deve ser validado pelo schema.');
+
+    $integrationInsert = $pdo->prepare(
+        'INSERT INTO newbot_integrations (newbot_instance_id, name, password_encrypted, status, created_at, updated_at)
+         VALUES (:instance_id, :name, :password_encrypted, :status, :created_at, :updated_at)'
+    );
+    $integrationInsert->execute([
+        'instance_id' => $newbotId,
+        'name' => 'Integração de teste',
+        'password_encrypted' => NewDoc\CredentialCipher::encrypt($secret),
+        'status' => 'pendente',
+        'created_at' => $now,
+        'updated_at' => $now,
+    ]);
+    $integrationId = (int) $pdo->lastInsertId();
+    $integrationRead = $pdo->prepare('SELECT password_encrypted FROM newbot_integrations WHERE id = :id');
+    $integrationRead->execute(['id' => $integrationId]);
+    $integrationValue = $integrationRead->fetchColumn();
+    expect(is_string($integrationValue) && $integrationValue !== $secret, 'Credenciais Newbot não podem ser armazenadas em texto puro.');
+    expect(NewDoc\CredentialCipher::decrypt($integrationValue) === $secret, 'A credencial Newbot deve manter exatamente os caracteres originais.');
+
+    $emptyIntegrationNameRejected = false;
+    try {
+        $integrationInsert->execute([
+            'instance_id' => $newbotId,
+            'name' => '   ',
+            'password_encrypted' => null,
+            'status' => 'pendente',
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+    } catch (PDOException) {
+        $emptyIntegrationNameRejected = true;
+    }
+    expect($emptyIntegrationNameRejected, 'O nome da integração Newbot é obrigatório.');
+
+    NewDoc\Audit::record($pdo, 'alteracao', 'newbot_integrations', $integrationId, 'password', null, true);
+    $newbotAuditRead = $pdo->prepare(
+        'SELECT old_value, new_value, sensitive_field FROM audit_logs WHERE table_name = :table_name'
+    );
+    $newbotAuditRead->execute(['table_name' => 'newbot_integrations']);
+    $newbotAudit = $newbotAuditRead->fetch();
+    expect(
+        is_array($newbotAudit) && $newbotAudit['old_value'] === null && $newbotAudit['new_value'] === null,
+        'Auditoria sensível do Newbot deve omitir valores.'
+    );
+    expect((int) $newbotAudit['sensitive_field'] === 1, 'Auditoria do Newbot deve marcar o campo como sensível.');
+
     NewDoc\Session::start();
     $token = NewDoc\Csrf::token();
     expect(NewDoc\Csrf::verify($token), 'O token CSRF gerado deve ser aceito.');
@@ -158,12 +264,16 @@ try {
 
     $pdo = null;
     NewDoc\Database::resetConnection();
-    fwrite(STDOUT, "OK: migrations, Newsic, homônimos, hash de senha, criptografia, auditoria sensível e CSRF.\n");
+    fwrite(STDOUT, "OK: migrations, Newsic, Newbot, homônimos, hash de senha, criptografia, auditoria sensível e CSRF.\n");
 } finally {
     if (session_status() === PHP_SESSION_ACTIVE) {
         NewDoc\Session::destroy();
     }
     unset(
+        $newbotAuditRead,
+        $integrationRead,
+        $integrationInsert,
+        $newbotInsert,
         $storedCredential,
         $storeCredential,
         $extensionInsert,
