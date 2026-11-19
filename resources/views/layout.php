@@ -10,6 +10,7 @@ $navItems = [
     ['label' => 'Visão geral', 'href' => '/', 'icon' => 'grid', 'key' => 'dashboard'],
     ['label' => 'Empresas', 'href' => '/empresas', 'icon' => 'building', 'key' => 'companies'],
     ['label' => 'Newsic / IPBX', 'href' => '/newsic', 'icon' => 'phone', 'key' => 'newsic'],
+    ['label' => 'Newbot', 'href' => '/newbot', 'icon' => 'bot', 'key' => 'newbot'],
     ['label' => 'Documentos', 'href' => '/documentos', 'icon' => 'file', 'key' => 'documents'],
     ['label' => 'Auditoria', 'href' => '/auditoria', 'icon' => 'history', 'key' => 'audit'],
 ];
@@ -17,6 +18,7 @@ $icons = [
     'grid' => '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>',
     'building' => '<path d="M3 21h18M5 21V5l7-2 7 2v16M9 8h.01M15 8h.01M9 12h.01M15 12h.01M10 21v-5h4v5"/>',
     'phone' => '<path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 11.19 19a19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.09 4.18 2 2 0 0 1 4.08 2h3a2 2 0 0 1 2 1.72l.38 2.75a2 2 0 0 1-.57 1.68L7.6 9.43a16 16 0 0 0 6 6l1.28-1.28a2 2 0 0 1 1.68-.57l2.75.38a2 2 0 0 1 1.69 1.96Z"/>',
+    'bot' => '<rect x="4" y="8" width="16" height="12" rx="2"/><path d="M12 4v4M9 13h.01M15 13h.01M9 17h6"/>',
     'file' => '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8"/>',
     'history' => '<path d="M3 12a9 9 0 1 0 2.64-6.36L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/>',
 ];
@@ -47,13 +49,14 @@ $icons = [
                     <svg viewBox="0 0 24 24" aria-hidden="true"><?= $icons[$item['icon']] ?></svg>
                     <span><?= h($item['label']) ?></span>
                     <?php if ($item['key'] === 'newsic'): ?><span class="nav-pill">F2</span><?php endif; ?>
+                    <?php if ($item['key'] === 'newbot'): ?><span class="nav-pill">F3</span><?php endif; ?>
                 </a>
             <?php endforeach; ?>
         </nav>
         <div class="sidebar-bottom">
             <div class="phase-note">
                 <span class="phase-dot"></span>
-                <div><strong>Fase 2</strong><small>Módulo Newsic</small></div>
+                <div><strong>Fase 3</strong><small>Módulos Newsic e Newbot</small></div>
             </div>
             <div class="sidebar-foot">Newtel Soluções<br>Ambiente local</div>
         </div>
@@ -95,7 +98,7 @@ $icons = [
             <?php if ($flashSuccess !== null): ?><div class="alert alert-success" role="status"><?= h($flashSuccess) ?></div><?php endif; ?>
             <?= $content ?>
         </section>
-        <footer class="app-footer"><span>NewDOC <span class="footer-separator">•</span> Fase 2</span><span>Dados protegidos e auditáveis</span></footer>
+        <footer class="app-footer"><span>NewDOC <span class="footer-separator">•</span> Fase 3</span><span>Dados protegidos e auditáveis</span></footer>
     </main>
 </div>
 </body>
