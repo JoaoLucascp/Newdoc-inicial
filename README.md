@@ -1,6 +1,6 @@
 # NewDOC
 
-Aplicação web em português para cadastro e busca de empresas, autenticação, acervo de documentos, auditoria e gestão Newsic/IPBX. O núcleo foi implementado em PHP com arquitetura MVC pequena, SQLite e bibliotecas nativas.
+Aplicação web em português para cadastro e busca de empresas, autenticação, acervo de documentos, auditoria e gestão Newsic/IPBX e Newbot. O núcleo foi implementado em PHP com arquitetura MVC pequena, SQLite e bibliotecas nativas.
 
 A pasta de trabalho `C:\NewtelSistema` contém somente este projeto, em `newdoc\`. Os arquivos antigos foram preservados, sem importação ou mesclagem de dados, em `C:\NewtelSistema_arquivo_20261116`, fora da pasta de trabalho. O NewDOC não depende desse arquivo externo.
 
@@ -97,6 +97,8 @@ php bin/backup.php
 
 O backup usa `VACUUM INTO` para o SQLite e cria uma pasta lateral com cópias dos documentos já criptografados, ambos em `storage/backups/`. Proteja os dois artefatos e mantenha uma cópia segura de `CREDENTIALS_KEY` separadamente: nem a chave nem o conteúdo em texto puro entram no backup. Teste restauração em ambiente isolado antes de usar em produção. A política externa de retenção e cópias 3-2-1 deve ser definida pela Newtel.
 
+Os testes de `tests/run.php` usam um banco SQLite temporário e uma chave aleatória, sem tocar no banco real. Eles cobrem migrations, homônimos, política de senha, criptografia, auditoria sensível, CSRF e as regras de schema do Newsic e do Newbot. As telas não têm testes automatizados e devem ser verificadas manualmente.
+
 ## Controles implementados
 
 - `password_hash()` / `password_verify()`, sessão regenerada no login, expiração após 30 minutos de inatividade, cookies `HttpOnly` e `SameSite`, logout por POST e token CSRF.
@@ -118,6 +120,17 @@ A migration `002_newsic_schema.sql` cria tabelas para instâncias, ramais, tronc
 - Senhas de acesso do Newsic são criptografadas com `CREDENTIALS_KEY`, nunca são exibidas, e podem ser mantidas, substituídas ou removidas sem revelar o valor atual.
 - Um documento Newsic pode ser associado manualmente como origem. O sistema não lê nem importa dados dos documentos.
 
+## Fase 3 — Newbot
+
+A migration `003_newbot_schema.sql` cria tabelas para instâncias, canais, administradores, responsáveis, autenticações, integrações e atendentes. Em um banco com dados, faça `php bin/backup.php` antes de aplicá-la com `php bin/migrate.php`; a migration apenas acrescenta tabelas.
+
+- As telas ficam em `/newbot` (lista e busca) e em `/empresas/{id}/newbot` (instâncias da empresa), com atalhos no menu lateral e na ficha da empresa.
+- Uma empresa pode ter no máximo uma instância Newbot ativa, garantido por índice único no banco; instâncias inativas ou em manutenção ficam como histórico.
+- Técnicos e administradores cadastram e editam instâncias e os itens de canais, administradores, responsáveis, autenticações, integrações e atendentes. A validação ocorre no servidor.
+- Senhas de administradores e integrações são criptografadas com `CREDENTIALS_KEY`, preservadas exatamente como digitadas, nunca exibidas, e podem ser mantidas, substituídas ou removidas sem revelar o valor atual. A auditoria registra a alteração sem valores.
+- Usuários `viewer` veem os dados gerais e a contagem de itens, sem os registros técnicos.
+- Um documento do tipo Newbot pode ser associado manualmente como origem. O sistema não lê nem importa dados dos documentos.
+
 ## Estrutura
 
 ```text
@@ -132,8 +145,8 @@ tests/                  Testes focados, sem dependências externas
 
 ## Ainda não implementado
 
-- Módulos de serviço Newbot, Newvoz e patrimônio.
-- Gestão de canais e integrações adicionais.
+- Módulos de serviço Newvoz e patrimônio.
+- Integrações automáticas com plataformas externas: o Newbot guarda apenas os dados cadastrais.
 - Importação assistida, leitura de abas, mapeamento manual na interface e aprovação de dados extraídos.
 - Download/descriptografia dos originais pela interface.
 - Gestão de usuários, recuperação de senha, permissões granulares e fluxo de redefinição.
