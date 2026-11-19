@@ -48,7 +48,9 @@ foreach ($newsicInstances as $newsicInstance) {
                 <?php else: ?><span class="status-badge status-muted"><span></span>Não cadastrado</span><?php endif; ?>
                 <a class="text-link" href="/empresas/<?= h($company['id']) ?>/newsic">Abrir</a>
             </div>
-            <div class="future-module"><span class="module-icon icon-purple">B</span><span><strong>Newbot</strong><small>Módulo de fase futura</small></span><span class="status-badge status-muted"><span></span>Indisponível</span></div>
+            <div class="future-module"><span class="module-icon icon-purple">B</span><span><strong>Newbot</strong><small>Instâncias, canais e integrações</small></span>
+                <a class="text-link" href="/empresas/<?= h($company['id']) ?>/newbot">Abrir</a>
+            </div>
             <div class="future-module"><span class="module-icon icon-amber">V</span><span><strong>Newvoz</strong><small>Módulo de fase futura</small></span><span class="status-badge status-muted"><span></span>Indisponível</span></div>
         </section>
         <section class="panel side-card">
