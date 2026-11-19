@@ -7,6 +7,10 @@
 - Criptografia de credenciais Newsic, auditoria sem valores sensíveis e consulta minimizada para usuários somente leitura.
 - Testes focados de unicidade e armazenamento criptografado de credenciais.
 - Correção do bootstrap e da liberação de recursos SQLite no teste integrado, evitando saída antes da sessão e arquivos temporários bloqueados.
+- Módulo Newbot (Fase 3) com migration `003_newbot_schema.sql`: instâncias, canais, administradores, responsáveis, autenticações, integrações e atendentes, com no máximo uma instância ativa por empresa.
+- Rotas `/newbot` registradas, item Newbot no menu lateral e link na ficha da empresa.
+- Senhas de administradores e integrações do Newbot criptografadas, nunca exibidas, e auditoria sem valores sensíveis.
+- Testes do Newbot em `tests/run.php`: unicidade da instância ativa, histórico permitido, status inválido, credencial preservada exatamente e auditoria sensível.
 
 ## 1.0.0 - 2026-11-16
 
