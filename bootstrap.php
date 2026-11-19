@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
-define('NEWDOC_ROOT', __DIR__);
+if (!defined('NEWDOC_ROOT')) {
+    define('NEWDOC_ROOT', __DIR__);
+}
 
 spl_autoload_register(static function (string $class): void {
     $prefix = 'NewDoc\\';
