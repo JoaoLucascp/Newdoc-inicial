@@ -25,17 +25,27 @@ final class NewsicDeleteController
         ]));
     }
 
+    private function wantsJson(): bool
+    {
+        return str_contains((string) ($_SERVER['HTTP_ACCEPT'] ?? ''), 'application/json');
+    }
+
+    private function json(array $data, int $status = 200): Response
+    {
+        return new Response($status, json_encode($data, JSON_THROW_ON_ERROR), ['Content-Type' => 'application/json; charset=UTF-8']);
+    }
+
     private function dispatch(int $id): Response
     {
         $userId = (int) (Auth::user()['id'] ?? 0);
-        if (!Auth::canManage() || $userId < 1) return View::render('errors/403', [], 403);
+        if (!Auth::canManage() || $userId < 1) return $this->wantsJson() ? $this->json(['success' => false, 'error' => 'Acesso negado.'], 403) : View::render('errors/403', [], 403);
         if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') return new Response(405, '', ['Allow' => 'POST']);
-        if (!Csrf::verify($_POST['_csrf'] ?? null)) return View::render('errors/419', [], 419);
+        if (!Csrf::verify($_POST['_csrf'] ?? null)) return $this->wantsJson() ? $this->json(['success' => false, 'error' => 'Sessão ou formulário inválido.'], 419) : View::render('errors/419', [], 419);
         $query = $this->pdo->prepare('SELECT n.id, n.company_id, n.server_name, c.name AS company_name FROM newsic_instances n JOIN companies c ON c.id = n.company_id WHERE n.id = :id');
         $query->execute(['id' => $id]);
         $instance = $query->fetch(PDO::FETCH_ASSOC);
         $query->closeCursor();
-        if (!$instance) return View::render('errors/404', [], 404);
+        if (!$instance) return $this->wantsJson() ? $this->json(['success' => false, 'error' => 'Servidor não encontrado.'], 404) : View::render('errors/404', [], 404);
         $error = null;
         $rows = [];
         $token = '';
@@ -44,8 +54,12 @@ final class NewsicDeleteController
         $action = $_POST['action'] ?? '';
         if ($action === 'cancel') {
             $draft = $_SESSION['newsic_delete_draft'] ?? null;
-            if (is_array($draft) && ($draft['instance_id'] ?? null) === $id) unset($_SESSION['newsic_delete_draft']);
-            return Response::redirect('/newsic/' . $id . '#ramais');
+            $providedToken = $_POST['draft_token'] ?? null;
+            $matchingToken = is_array($draft) && is_string($providedToken) && is_string($draft['token'] ?? null) && hash_equals($draft['token'], $providedToken);
+            if (is_array($draft) && ($draft['instance_id'] ?? null) === $id && ($draft['user_id'] ?? null) === $userId
+                && (!$this->wantsJson() || $matchingToken)
+            ) unset($_SESSION['newsic_delete_draft']);
+            return $this->wantsJson() ? $this->json(['success' => true]) : Response::redirect('/newsic/' . $id . '#ramais');
         }
         if ($action === 'preview') {
             unset($_SESSION['newsic_delete_draft']);
@@ -53,6 +67,7 @@ final class NewsicDeleteController
             try {
                 if (!is_array($ids)) throw new \RuntimeException('Seleção inválida.');
                 $preview = (new NewsicExtensionDelete($this->pdo))->preview($id, $ids);
+                $instance = $preview['instance'];
                 $rows = $preview['rows'];
                 $expires = $preview['expires'];
                 $token = bin2hex(random_bytes(32));
@@ -80,14 +95,19 @@ final class NewsicDeleteController
                 try {
                     $count = (new NewsicExtensionDelete($this->pdo))->commit($id, $draft['sealed'], true);
                     Flash::success($count . ' ramal(is) excluído(s) definitivamente. Operação registrada na auditoria.');
-                    return Response::redirect('/newsic/' . $id . '#ramais');
+                    return $this->wantsJson() ? $this->json(['success' => true, 'count' => $count]) : Response::redirect('/newsic/' . $id . '#ramais');
                 } catch (Throwable) {
                     $error = 'Nenhum ramal foi excluído. A seleção pode ter mudado; volte à tabela e gere uma nova confirmação.';
                     $status = 422;
                 }
             }
         } else {
-            return View::render('errors/400', [], 400);
+            return $this->wantsJson() ? $this->json(['success' => false, 'error' => 'Solicitação inválida.'], 400) : View::render('errors/400', [], 400);
+        }
+        if ($this->wantsJson()) {
+            return $error !== null
+                ? $this->json(['success' => false, 'error' => $error], $status)
+                : $this->json(['success' => true, 'instance' => $instance, 'rows' => $rows, 'token' => $token, 'expires' => $expires]);
         }
         return View::render('newsic/delete', compact('instance', 'error', 'rows', 'token', 'expires'), $status);
     }
