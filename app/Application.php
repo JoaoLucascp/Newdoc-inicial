@@ -7,6 +7,7 @@ namespace NewDoc;
 use NewDoc\Controllers\AuditController;
 use NewDoc\Controllers\AuthController;
 use NewDoc\Controllers\CompanyController;
+use NewDoc\Controllers\CredentialController;
 use NewDoc\Controllers\DashboardController;
 use NewDoc\Controllers\DocumentController;
 use NewDoc\Controllers\NewbotController;
@@ -134,6 +135,9 @@ final class Application
             if ($method === 'POST') {
                 return $controller->update((int) $matches[1]);
             }
+        }
+        if (preg_match('#^/credenciais/([a-z_]+)/([1-9][0-9]*)/revelar$#', $path, $matches) === 1 && $method === 'POST') {
+            return (new CredentialController($this->pdo))->reveal($matches[1], (int) $matches[2]);
         }
         if ($path === '/documentos' && $method === 'GET') {
             return (new DocumentController($this->pdo))->index();
