@@ -67,6 +67,9 @@ $typeLabels = ['virtual' => 'Virtual', 'cloud' => 'Cloud', 'fisico' => 'Físico'
     <strong>Credenciais protegidas:</strong> técnicos e administradores podem consultar as senhas pelo olho. A consulta é auditada sem registrar o valor da senha. Para substituir ou remover senhas web e SSH, use Editar servidor.
 </span></div>
 <?php foreach ($sections as $sectionIndex => $section): ?>
+    <?php if ($section['type'] === 'extensions'): ?>
+        <?php require __DIR__ . '/_extensions.php'; continue; ?>
+    <?php endif; ?>
     <section class="panel newsic-data-panel">
         <div class="panel-heading">
             <div><h2><?= h($section['label']) ?></h2><p><?= h($section['record_count']) ?> registro(s)</p></div>

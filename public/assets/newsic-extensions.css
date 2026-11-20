@@ -1,0 +1,13 @@
+.extensions-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--line); background: #fafbfd; }
+.extensions-table { min-width: 1200px; }
+.extensions-table th, .extensions-table td { padding: 9px 12px; }
+.extensions-table tbody:nth-of-type(even) > .extension-summary { background: #f6f8fc; }
+.extensions-table .extension-summary:hover { background: #eef3ff; }
+.extensions-table .extension-secret { min-width: 185px; }
+.extensions-table .extension-secret form { margin: 0; }
+.extensions-table .extension-secret .form-input { min-height: 32px; }
+.extensions-table .extension-notes { min-width: 160px; max-width: 260px; overflow-wrap: anywhere; }
+.extensions-table .extension-editor > td { padding: 0; background: #fbfcff; }
+.extensions-table [hidden], .extensions-panel [hidden] { display: none !important; }
+.extension-editor-heading { margin: 0; padding: 14px 16px 0; color: var(--ink-soft); font-size: 12px; }
+.extensions-table .form-grid { min-width: 0; }
