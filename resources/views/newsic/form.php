@@ -62,7 +62,7 @@ $serverTypes = ['virtual' => 'Virtual', 'cloud' => 'Cloud', 'fisico' => 'Físico
         </div>
     </section>
     <section class="panel form-section">
-        <div class="panel-heading"><div><h2>Acesso web</h2><p>Credenciais são criptografadas; valores nunca são exibidos.</p></div><span class="section-number">02</span></div>
+        <div class="panel-heading"><div><h2>Acesso web</h2><p>Credenciais criptografadas. Consulta pelo olho para técnicos e administradores.</p></div><span class="section-number">02</span></div>
         <div class="form-grid">
             <label class="form-field" for="web_username"><span>Usuário web</span>
                 <input class="form-input" id="web_username" name="web_username" maxlength="160" value="<?= h($instance['web_username'] ?? '') ?>">
@@ -74,14 +74,21 @@ $serverTypes = ['virtual' => 'Virtual', 'cloud' => 'Cloud', 'fisico' => 'Físico
             <div class="form-field">
                 <label for="web_password"><span>Senha web</span></label>
                 <input class="form-input" id="web_password" name="web_password" type="password" autocomplete="new-password">
-                <small class="field-help"><?= !empty($instance['has_web_password']) ? 'Já configurada. Deixe em branco para manter.' : 'Será criptografada antes de ser gravada.' ?></small>
+                <small class="field-help"><?= !empty($instance['has_web_password']) ? 'Já configurada. Deixe em branco para manter. Use o olho para consultar a senha salva.' : 'Será criptografada antes de ser gravada.' ?></small>
+                <?php if ($isEdit && !empty($instance['has_web_password']) && (int) ($instance['id'] ?? 0) > 0): ?>
+                    <?php
+                    $credentialTarget = 'newsic_web';
+                    $credentialId = (int) $instance['id'];
+                    require dirname(__DIR__) . '/partials/credential.php';
+                    ?>
+                <?php endif; ?>
                 <?php if (!empty($instance['has_web_password'])): ?><label class="checkbox-label"><input type="checkbox" name="clear_web_password" value="1" <?= ($instance['clear_web_password'] ?? '') === '1' ? 'checked' : '' ?>> Remover a credencial</label><?php endif; ?>
                 <?php if (isset($errors['web_password'])): ?><small class="field-error"><?= h($errors['web_password']) ?></small><?php endif; ?>
             </div>
         </div>
     </section>
     <section class="panel form-section">
-        <div class="panel-heading"><div><h2>Acesso SSH</h2><p>Credenciais são criptografadas; valores nunca são exibidos.</p></div><span class="section-number">03</span></div>
+        <div class="panel-heading"><div><h2>Acesso SSH</h2><p>Credenciais criptografadas. Consulta pelo olho para técnicos e administradores.</p></div><span class="section-number">03</span></div>
         <div class="form-grid">
             <label class="form-field" for="ssh_username"><span>Usuário SSH</span>
                 <input class="form-input" id="ssh_username" name="ssh_username" maxlength="160" value="<?= h($instance['ssh_username'] ?? '') ?>">
@@ -93,7 +100,14 @@ $serverTypes = ['virtual' => 'Virtual', 'cloud' => 'Cloud', 'fisico' => 'Físico
             <div class="form-field field-wide">
                 <label for="ssh_password"><span>Senha SSH</span></label>
                 <input class="form-input" id="ssh_password" name="ssh_password" type="password" autocomplete="new-password">
-                <small class="field-help"><?= !empty($instance['has_ssh_password']) ? 'Já configurada. Deixe em branco para manter.' : 'Será criptografada antes de ser gravada.' ?></small>
+                <small class="field-help"><?= !empty($instance['has_ssh_password']) ? 'Já configurada. Deixe em branco para manter. Use o olho para consultar a senha salva.' : 'Será criptografada antes de ser gravada.' ?></small>
+                <?php if ($isEdit && !empty($instance['has_ssh_password']) && (int) ($instance['id'] ?? 0) > 0): ?>
+                    <?php
+                    $credentialTarget = 'newsic_ssh';
+                    $credentialId = (int) $instance['id'];
+                    require dirname(__DIR__) . '/partials/credential.php';
+                    ?>
+                <?php endif; ?>
                 <?php if (!empty($instance['has_ssh_password'])): ?><label class="checkbox-label"><input type="checkbox" name="clear_ssh_password" value="1" <?= ($instance['clear_ssh_password'] ?? '') === '1' ? 'checked' : '' ?>> Remover a credencial</label><?php endif; ?>
                 <?php if (isset($errors['ssh_password'])): ?><small class="field-error"><?= h($errors['ssh_password']) ?></small><?php endif; ?>
             </div>
