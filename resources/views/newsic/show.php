@@ -31,10 +31,28 @@ $typeLabels = ['virtual' => 'Virtual', 'cloud' => 'Cloud', 'fisico' => 'Físico'
             <div><dt>IP externo</dt><dd><?= h($instance['external_ip'] ?: 'Não informado') ?></dd></div>
             <div><dt>Porta web</dt><dd><?= h($instance['web_port'] ?: '—') ?></dd></div>
             <div><dt>Usuário web</dt><dd><?= h($instance['web_username'] ?: '—') ?></dd></div>
-            <div><dt>Senha web</dt><dd><?= !empty($instance['has_web_password']) ? 'Configurada · criptografada' : 'Não configurada' ?></dd></div>
+            <div><dt>Senha web</dt><dd>
+                <?php if (!empty($instance['has_web_password'])): ?>
+                    <?php
+                    $credentialTarget = 'newsic_web';
+                    $credentialId = (int) $instance['id'];
+                    $credentialLabel = 'Senha web';
+                    require dirname(__DIR__) . '/partials/credential_readonly.php';
+                    ?>
+                <?php else: ?>Não configurada<?php endif; ?>
+            </dd></div>
             <div><dt>Porta SSH</dt><dd><?= h($instance['ssh_port'] ?: '—') ?></dd></div>
             <div><dt>Usuário SSH</dt><dd><?= h($instance['ssh_username'] ?: '—') ?></dd></div>
-            <div><dt>Senha SSH</dt><dd><?= !empty($instance['has_ssh_password']) ? 'Configurada · criptografada' : 'Não configurada' ?></dd></div>
+            <div><dt>Senha SSH</dt><dd>
+                <?php if (!empty($instance['has_ssh_password'])): ?>
+                    <?php
+                    $credentialTarget = 'newsic_ssh';
+                    $credentialId = (int) $instance['id'];
+                    $credentialLabel = 'Senha SSH';
+                    require dirname(__DIR__) . '/partials/credential_readonly.php';
+                    ?>
+                <?php else: ?>Não configurada<?php endif; ?>
+            </dd></div>
             <div class="detail-wide"><dt>Link FreeMyIP</dt><dd><?= h($instance['freemyip_link'] ?: '—') ?></dd></div>
             <div class="detail-wide"><dt>Documentação</dt><dd><?= h($instance['documentation_path'] ?: '—') ?></dd></div>
             <?php if ($instance['notes']): ?><div class="detail-wide"><dt>Observações</dt><dd><?= nl2br(h($instance['notes'])) ?></dd></div><?php endif; ?>
@@ -46,7 +64,7 @@ $typeLabels = ['virtual' => 'Virtual', 'cloud' => 'Cloud', 'fisico' => 'Físico'
         <span>Atualizada em <?= h(date('d/m/Y H:i', strtotime($instance['updated_at']))) ?></span></div>
 </section>
 <div class="notice notice-info"><span>
-    <strong>Credenciais protegidas:</strong> valores de senha não são exibidos. Técnicos autorizados podem substituir ou remover uma credencial sem revelar o valor atual.
+    <strong>Credenciais protegidas:</strong> técnicos e administradores podem consultar as senhas pelo olho. A consulta é auditada sem registrar o valor da senha. Para substituir ou remover senhas web e SSH, use Editar servidor.
 </span></div>
 <?php foreach ($sections as $sectionIndex => $section): ?>
     <section class="panel newsic-data-panel">
