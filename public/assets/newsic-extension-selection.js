@@ -47,15 +47,15 @@
         const confirmButton = confirmForm.querySelector('button[type="submit"]');
         const closers = Array.from(dialog.querySelectorAll('[data-modal-close]'));
         const csrf = form.querySelector('input[name="_csrf"]')?.value;
-        const endpoint = new URL(form.action, location.origin);
+        const endpoint = new URL(form.getAttribute('action') || '', location.origin);
         let token = '', controller = null, committing = false, expiryTimer = null, version = 0;
         const request = async (body, signal) => {
-            if (!csrf || endpoint.origin !== location.origin) throw new Error('Sessão inválida. Atualize a página.');
+            if (!csrf || endpoint.origin !== location.origin || !/^\/newsic\/[1-9][0-9]*\/ramais\/excluir$/.test(endpoint.pathname)) throw new Error('Sessão ou endereço inválido. Atualize a página.');
             const response = await fetch(endpoint, {
                 method: 'POST', credentials: 'same-origin', cache: 'no-store', redirect: 'error',
                 headers: { Accept: 'application/json' }, body, signal,
             });
-            if (!response.headers.get('content-type')?.includes('application/json')) throw new Error('Resposta indisponível. Verifique sua sessão e atualize a lista.');
+            if (!response.headers.get('content-type')?.includes('application/json')) throw new Error('Resposta indisponível (HTTP ' + response.status + '). Verifique sua sessão e atualize a lista.');
             const data = await response.json();
             if (!response.ok || data.success !== true) throw new Error(typeof data.error === 'string' ? data.error : 'Não foi possível concluir a solicitação.');
             return data;
