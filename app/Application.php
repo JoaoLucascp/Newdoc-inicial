@@ -91,6 +91,9 @@ final class Application
         if (preg_match('#^/empresas/([1-9][0-9]*)/newsic/nova$#', $path, $matches) === 1 && $method === 'GET') {
             return (new NewsicController($this->pdo))->create((int) $matches[1]);
         }
+        if (preg_match('#^/newsic/([1-9][0-9]*)/ramais/lote$#', $path, $matches) === 1) {
+            return (new \NewDoc\Controllers\NewsicImportController($this->pdo))->handle((int) $matches[1]);
+        }
         if (preg_match('#^/newsic/([1-9][0-9]*)/editar$#', $path, $matches) === 1 && $method === 'GET') {
             return (new NewsicController($this->pdo))->edit((int) $matches[1]);
         }

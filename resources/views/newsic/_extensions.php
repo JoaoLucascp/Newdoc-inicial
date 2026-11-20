@@ -24,6 +24,7 @@ $newExtensionOpen = ($formState['section'] ?? null) === 'extensions' && ($formSt
         <div class="extensions-toolbar">
             <button type="button" class="button button-primary" data-extension-toggle aria-controls="extension-new" aria-expanded="<?= $newExtensionOpen ? 'true' : 'false' ?>">Novo ramal</button>
             <a class="button button-secondary" href="/newsic/<?= h($instance['id']) ?>#ramais">Atualizar lista</a>
+            <a class="button button-secondary" href="/newsic/<?= h($instance['id']) ?>/ramais/lote">Cadastrar Lote</a>
         </div>
         <?php if ($section['records'] === []): ?><div class="empty-inline">Nenhum ramal cadastrado.</div><?php else: ?>
             <div class="table-wrap" tabindex="0" role="region" aria-label="Lista de ramais; role horizontalmente para ver todos os campos">
