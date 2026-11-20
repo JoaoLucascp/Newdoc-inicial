@@ -18,6 +18,7 @@ $newExtensionOpen = ($formState['section'] ?? null) === 'extensions' && ($formSt
 ?>
 <link rel="stylesheet" href="/assets/newsic-extensions.css?v=1">
 <script src="/assets/newsic-extensions.js?v=1" defer></script>
+<script src="/assets/newsic-extension-selection.js?v=1" defer></script>
 <section class="panel extensions-panel" id="ramais">
     <div class="panel-heading"><div><h2>Ramais</h2><p><?= h($section['record_count']) ?> registro(s)</p></div><span class="section-number">02</span></div>
     <?php if ($canManage): ?>
@@ -25,11 +26,17 @@ $newExtensionOpen = ($formState['section'] ?? null) === 'extensions' && ($formSt
             <button type="button" class="button button-primary" data-extension-toggle aria-controls="extension-new" aria-expanded="<?= $newExtensionOpen ? 'true' : 'false' ?>">Novo ramal</button>
             <a class="button button-secondary" href="/newsic/<?= h($instance['id']) ?>#ramais">Atualizar lista</a>
             <a class="button button-secondary" href="/newsic/<?= h($instance['id']) ?>/ramais/lote">Cadastrar Lote</a>
+            <form id="extension-delete-form" data-extension-delete-form action="/newsic/<?= h($instance['id']) ?>/ramais/excluir" method="post">
+                <input type="hidden" name="_csrf" value="<?= h(Csrf::token()) ?>">
+                <input type="hidden" name="action" value="preview">
+                <button class="button button-secondary" type="submit" <?= $section['records'] === [] ? 'disabled' : '' ?>>Excluir</button>
+                <span class="field-help" data-extension-selection-status role="status">Selecione os ramais</span>
+            </form>
         </div>
         <?php if ($section['records'] === []): ?><div class="empty-inline">Nenhum ramal cadastrado.</div><?php else: ?>
             <div class="table-wrap" tabindex="0" role="region" aria-label="Lista de ramais; role horizontalmente para ver todos os campos">
                 <table class="data-table extensions-table">
-                    <thead><tr><?php foreach ($extensionFields as $extensionField): ?><th scope="col" title="<?= h($extensionField['label']) ?>"><?= h($extensionColumnLabels[$extensionField['name']] ?? $extensionField['label']) ?></th><?php endforeach; ?><th scope="col">Ações</th></tr></thead>
+                    <thead><tr><th scope="col"><input type="checkbox" data-extension-select-all aria-label="Selecionar todos os ramais exibidos"></th><?php foreach ($extensionFields as $extensionField): ?><th scope="col" title="<?= h($extensionField['label']) ?>"><?= h($extensionColumnLabels[$extensionField['name']] ?? $extensionField['label']) ?></th><?php endforeach; ?><th scope="col">Ações</th></tr></thead>
                     <?php foreach ($section['records'] as $record): ?>
                         <?php
                         $recordId = (int) $record['values']['id'];
@@ -38,6 +45,7 @@ $newExtensionOpen = ($formState['section'] ?? null) === 'extensions' && ($formSt
                         ?>
                         <tbody>
                             <tr class="extension-summary">
+                                <td><input type="checkbox" data-extension-select form="extension-delete-form" name="ids[]" value="<?= h($recordId) ?>" aria-label="Selecionar ramal <?= h($extensionValues['extension_number']) ?>"></td>
                                 <?php foreach ($extensionFields as $extensionField): ?>
                                     <?php $extensionName = $extensionField['name']; $extensionValue = $extensionValues[$extensionName] ?? ''; ?>
                                     <td class="<?= $extensionField['type'] === 'secret' ? 'extension-secret' : ($extensionName === 'notes' ? 'extension-notes' : '') ?>">
@@ -59,7 +67,7 @@ $newExtensionOpen = ($formState['section'] ?? null) === 'extensions' && ($formSt
                                 <?php endforeach; ?>
                                 <td><button type="button" class="button button-secondary" data-extension-toggle aria-controls="extension-edit-<?= h($recordId) ?>" aria-expanded="<?= $editOpen ? 'true' : 'false' ?>" aria-label="Editar ramal <?= h($extensionValues['extension_number']) ?>">Editar</button></td>
                             </tr>
-                            <tr class="extension-editor" id="extension-edit-<?= h($recordId) ?>" <?= $editOpen ? '' : 'hidden' ?>><td colspan="<?= h(count($extensionFields) + 1) ?>">
+                            <tr class="extension-editor" id="extension-edit-<?= h($recordId) ?>" <?= $editOpen ? '' : 'hidden' ?>><td colspan="<?= h(count($extensionFields) + 2) ?>">
                                 <h3 class="extension-editor-heading">Editar ramal <?= h($extensionValues['extension_number']) ?></h3>
                                 <form action="/newsic/<?= h($instance['id']) ?>/dados" method="post" class="form-grid newsic-record-form">
                                     <input type="hidden" name="_csrf" value="<?= h(Csrf::token()) ?>">
