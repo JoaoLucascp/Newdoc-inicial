@@ -8,8 +8,21 @@
     <?php if ($field['type'] === 'secret'): ?>
         <div class="form-field field-wide"><label for="<?= h($id) ?>"><span><?= h($field['label']) ?></span></label>
             <input class="form-input" id="<?= h($id) ?>" name="<?= h($name) ?>" type="password" autocomplete="new-password">
-            <small class="field-help"><?= !empty($secretFields[$name]) ? 'Configurada. Deixe em branco para manter.' : 'Será criptografada antes de ser gravada.' ?></small>
-            <?php if (!empty($secretFields[$name])): ?><label class="checkbox-label"><input type="checkbox" name="clear_<?= h($name) ?>" value="1" <?= ($values['clear_' . $name] ?? '') === '1' ? 'checked' : '' ?>> Remover a credencial</label><?php endif; ?>
+            <small class="field-help"><?= !empty($secretFields[$name]) ? 'Configurada. Deixe em branco para manter. Use o olho para consultar a senha salva.' : 'Será criptografada antes de ser gravada.' ?></small>
+            <?php if (!empty($secretFields[$name])): ?>
+                <?php
+                $credentialTarget = match ($section['type']) {
+                    'administrators' => 'newbot_administrator',
+                    'integrations' => 'newbot_integration',
+                    default => null,
+                };
+                if ($credentialTarget !== null) {
+                    $credentialId = $recordId;
+                    require dirname(__DIR__) . '/partials/credential.php';
+                }
+                ?>
+                <label class="checkbox-label"><input type="checkbox" name="clear_<?= h($name) ?>" value="1" <?= ($values['clear_' . $name] ?? '') === '1' ? 'checked' : '' ?>> Remover a credencial</label>
+            <?php endif; ?>
         </div>
     <?php elseif ($field['type'] === 'textarea'): ?>
         <label class="form-field field-wide" for="<?= h($id) ?>"><span><?= h($field['label']) ?><?= $required ? ' *' : '' ?></span>
