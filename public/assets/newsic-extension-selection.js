@@ -112,9 +112,10 @@
             message.textContent = 'Processando exclusão...';
             try {
                 await request(new URLSearchParams({ _csrf: csrf, action: 'confirm', draft_token: providedToken, confirm_delete: '1' }));
-                const match = endpoint.pathname.match(/^\/newsic\/([1-9][0-9]*)\/ramais\/excluir$/);
-                if (!match) throw new Error('Atualize a lista para conferir o resultado.');
-                location.assign('/newsic/' + match[1] + '#ramais');
+                committing = false;
+                closers.forEach((control) => { control.disabled = false; });
+                dialog.close();
+                location.reload();
             } catch {
                 message.textContent = 'Não foi possível confirmar o resultado. Feche e atualize a lista antes de tentar novamente.';
                 committing = false;
