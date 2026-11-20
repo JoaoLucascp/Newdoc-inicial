@@ -3,6 +3,17 @@
 use NewDoc\Csrf;
 
 $extensionFields = $section['fields'];
+$extensionColumnLabels = [
+    'extension_number' => 'Ramal',
+    'registration_password' => 'Senha',
+    'ip_address' => 'IP',
+    'call_recording' => 'Gravação',
+    'permission_lof' => 'LOF',
+    'permission_loc' => 'LOC',
+    'permission_ddf' => 'DDF',
+    'permission_ddc' => 'DDC',
+    'permission_srv' => 'SRV',
+];
 $newExtensionOpen = ($formState['section'] ?? null) === 'extensions' && ($formState['record_id'] ?? null) === null;
 ?>
 <link rel="stylesheet" href="/assets/newsic-extensions.css?v=1">
@@ -17,7 +28,7 @@ $newExtensionOpen = ($formState['section'] ?? null) === 'extensions' && ($formSt
         <?php if ($section['records'] === []): ?><div class="empty-inline">Nenhum ramal cadastrado.</div><?php else: ?>
             <div class="table-wrap" tabindex="0" role="region" aria-label="Lista de ramais; role horizontalmente para ver todos os campos">
                 <table class="data-table extensions-table">
-                    <thead><tr><?php foreach ($extensionFields as $extensionField): ?><th scope="col"><?= h($extensionField['label']) ?></th><?php endforeach; ?><th scope="col">Ações</th></tr></thead>
+                    <thead><tr><?php foreach ($extensionFields as $extensionField): ?><th scope="col" title="<?= h($extensionField['label']) ?>"><?= h($extensionColumnLabels[$extensionField['name']] ?? $extensionField['label']) ?></th><?php endforeach; ?><th scope="col">Ações</th></tr></thead>
                     <?php foreach ($section['records'] as $record): ?>
                         <?php
                         $recordId = (int) $record['values']['id'];
