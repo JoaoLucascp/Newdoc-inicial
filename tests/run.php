@@ -262,9 +262,28 @@ try {
     expect(!NewDoc\Csrf::verify('token-invalido'), 'Um token CSRF inválido deve ser recusado.');
     NewDoc\Session::destroy();
 
+    foreach (['newsic_extension_csv.php', 'newsic_extension_import.php', 'newsic_extension_delete.php'] as $suite) {
+        $process = proc_open(
+            [PHP_BINARY, __DIR__ . DIRECTORY_SEPARATOR . $suite],
+            [1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
+            $pipes
+        );
+        expect(is_resource($process), 'Não foi possível iniciar a suíte ' . $suite . '.');
+        $suiteOutput = trim((string) stream_get_contents($pipes[1]));
+        $suiteErrors = trim((string) stream_get_contents($pipes[2]));
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+        $suiteExitCode = proc_close($process);
+        expect(
+            $suiteExitCode === 0 && str_starts_with($suiteOutput, 'OK:'),
+            'A suíte ' . $suite . ' falhou: ' . trim($suiteErrors . "\n" . $suiteOutput)
+        );
+        fwrite(STDOUT, $suiteOutput . "\n");
+    }
+
     $pdo = null;
     NewDoc\Database::resetConnection();
-    fwrite(STDOUT, "OK: migrations, Newsic, Newbot, homônimos, hash de senha, criptografia, auditoria sensível e CSRF.\n");
+    fwrite(STDOUT, "OK: migrations, Newsic, Newbot, homônimos, hash de senha, criptografia, auditoria sensível, CSRF e suítes Newsic de CSV, importação e exclusão.\n");
 } finally {
     if (session_status() === PHP_SESSION_ACTIVE) {
         NewDoc\Session::destroy();
