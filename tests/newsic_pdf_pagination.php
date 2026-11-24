@@ -50,8 +50,11 @@ foreach ($widthCases as $section => $weights) {
         $headers = $xpath->query('//table[@class="grid"]/thead/tr/th[@class="col"]');
         $cells = $xpath->query('//table[@class="grid"]/tbody/tr/td[not(@colspan)] | //table[@class="record-grid"]/tbody/tr/td[not(@colspan)]');
         $assert($headers->length === count($weights) && $cells->length === count($weights), 'quantidade de colunas: ' . $section);
+        $sizing = $xpath->query('//table[@class="grid"]/thead/tr[1][@class="column-widths"]/th[not(@colspan)]');
+        $assert($sizing->length === count($weights), 'primeira linha define cada coluna antes dos colspans: ' . $section);
         foreach ($weights as $index => $weight) {
             $expected = 'width:' . number_format(100 * $weight / array_sum($weights), 6, '.', '') . '%';
+            $assert($sizing->item($index)->getAttribute('style') === $expected, 'largura da primeira linha: ' . $section);
             $assert($headers->item($index)->getAttribute('style') === $expected, 'largura explícita do cabeçalho: ' . $section);
             $assert($cells->item($index)->getAttribute('style') === $expected, 'largura explícita da célula: ' . $section);
         }
@@ -64,6 +67,33 @@ foreach ($widthCases as $section => $weights) {
             $assert($headers->item(4)->textContent === 'DEPARTAMENTO' && $headers->item(4)->getElementsByTagName('br')->length === 1, 'departamento completo com quebra controlada');
             $assert($headers->item(5)->textContent === 'GRAVAÇÃO' && $headers->item(5)->getElementsByTagName('br')->length === 1, 'gravação completa com quebra controlada');
         }
+
+        $geometry = ['headers' => [], 'cells' => []];
+        $options = new Dompdf\Options();
+        $options->set('isRemoteEnabled', false);
+        $options->set('isPhpEnabled', false);
+        $options->set('isJavascriptEnabled', false);
+        $options->set('defaultFont', 'DejaVu Sans');
+        $renderer = new Dompdf\Dompdf($options);
+        $renderer->setPaper('A4', 'portrait');
+        $renderer->setCallbacks([['event' => 'end_frame', 'f' => static function ($frame) use (&$geometry): void {
+            $node = $frame->get_node();
+            if (!$node instanceof DOMElement) return;
+            if ($node->tagName === 'th' && $node->getAttribute('class') === 'col') {
+                $geometry['headers'][] = $frame->get_border_box();
+            } elseif ($node->tagName === 'td' && !$node->hasAttribute('colspan') && str_starts_with($node->getAttribute('style'), 'width:')) {
+                $geometry['cells'][] = $frame->get_border_box();
+            }
+        }]]);
+        $renderer->loadHtml($html, 'UTF-8');
+        $renderer->render();
+        $assert(count($geometry['headers']) >= count($weights) && count($geometry['cells']) === count($weights), 'captura da geometria renderizada: ' . $section);
+        foreach ($weights as $index => $weight) {
+            [$hx, , $hw] = $geometry['headers'][$index];
+            [$cx, , $cw] = $geometry['cells'][$index];
+            $assert(abs($hx - $cx) <= 1.0 && abs(($hx + $hw) - ($cx + $cw)) <= 1.0, 'divisórias renderizadas alinhadas (tolerância 1 pt): ' . $section . ' coluna ' . ($index + 1));
+        }
+        unset($renderer);
     }
 }
-echo "OK: estrutura de seções vazias, registro com observação, redes, continuação identificada e larguras explícitas. Inspeção visual pendente.\n";
+echo "OK: estrutura de seções vazias, registro com observação, redes, continuação identificada, larguras explícitas e geometria renderizada. Inspeção visual pendente.\n";

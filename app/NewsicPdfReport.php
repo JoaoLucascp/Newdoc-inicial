@@ -180,9 +180,13 @@ final class NewsicPdfReport
         $colgroup = '<colgroup>';
         foreach ($widths as $width) $colgroup .= '<col style="width:' . $width . '">';
         $colgroup .= '</colgroup>';
+        // Dompdf fixed layout reads only the first row and ignores widths on colspan cells.
+        $sizing = '<tr class="column-widths" aria-hidden="true">';
+        foreach ($widths as $width) $sizing .= '<th style="width:' . $width . '"></th>';
+        $sizing .= '</tr>';
         $headingWidth = number_format(100 * array_sum(array_slice(array_column($columns, 1), 0, $n - 2)) / $totalWidth, 6, '.', '') . '%';
         $countWidth = number_format(100 * array_sum(array_slice(array_column($columns, 1), -2)) / $totalWidth, 6, '.', '') . '%';
-        $h = '<table class="grid">' . $colgroup . '<thead><tr><th class="bar" style="width:' . $headingWidth . '" colspan="' . ($n - 2) . '">' . $this->e(mb_strtoupper($title)) . '</th><th class="bar r" style="width:' . $countWidth . '" colspan="2"><span class="pill">' . count($rows) . ' registro(s)</span></th></tr><tr>';
+        $h = '<table class="grid">' . $colgroup . '<thead>' . $sizing . '<tr><th class="bar" style="width:' . $headingWidth . '" colspan="' . ($n - 2) . '">' . $this->e(mb_strtoupper($title)) . '</th><th class="bar r" style="width:' . $countWidth . '" colspan="2"><span class="pill">' . count($rows) . ' registro(s)</span></th></tr><tr>';
         foreach ($columns as $index => [$label, $width]) {
             $labelHtml = match ($label) {
                 'Departamento' => 'DEPARTA<br>MENTO',
@@ -296,6 +300,7 @@ h1{font-size:20pt;color:#0b2545;margin:0 0 2px 0}
 .bt{color:#fff;font-size:10pt;font-weight:bold;padding:6px 8px}
 .bc{text-align:right;white-space:nowrap;padding:6px 8px}
 .grid{width:100%;margin:6px 0 14px 0;table-layout:fixed}
+.column-widths th{height:0;line-height:0;font-size:0;padding:0;border:0}
 th.bar{background:#0b2545;color:#fff;font-size:10pt;text-align:left;padding:6px 8px}
 th.bar.r{text-align:right;white-space:nowrap}
 th.col{background:#e8eef7;color:#0b2545;font-size:7pt;text-align:left;border:1px solid #cfd9e8;padding:4px 5px}
