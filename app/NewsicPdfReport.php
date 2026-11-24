@@ -247,9 +247,10 @@ h1{font-size:20pt;color:#0b2545;margin:0 0 2px 0}
 .strip td{padding:7px 9px;font-size:9pt;color:#0b2545}
 .barbox{width:100%;background:#0b2545;margin-top:6px}
 .bt{color:#fff;font-size:10pt;font-weight:bold;padding:6px 8px}
-.bc{text-align:right;padding:6px 8px}
+.bc{text-align:right;white-space:nowrap;padding:6px 8px}
 .grid{width:100%;margin:6px 0 14px 0}
 th.bar{background:#0b2545;color:#fff;font-size:10pt;text-align:left;padding:6px 8px}
+th.bar.r{text-align:right;white-space:nowrap}
 th.col{background:#e8eef7;color:#0b2545;font-size:7pt;text-align:left;border:1px solid #cfd9e8;padding:4px 5px}
 td{border:1px solid #d6deea;padding:4px 5px;vertical-align:top;font-size:8pt}
 tr.alt td{background:#f6f9fd}
@@ -257,7 +258,7 @@ tr.note td{background:#f1f5fb;color:#33445c;font-size:7.5pt}
 tr.rec,tbody.rec{page-break-inside:avoid}
 td.empty,.emptybox{text-align:center;color:#6b7a90;padding:10px}
 .emptybox{border:1px solid #d6deea;margin-bottom:14px}
-.pill{background:#1f6feb;color:#fff;font-size:7pt;padding:2px 7px}
+.pill{background:#1f6feb;color:#fff;font-size:7pt;padding:2px 7px;white-space:nowrap}
 .badge{font-size:7.5pt;font-weight:bold;padding:2px 6px}
 .badge.ok{background:#d9f5e3;color:#0d6b34}.badge.off{background:#e6e9ee;color:#46505e}.badge.warn{background:#fff0cc;color:#7a5200}
 .muted{color:#8a96a8}.mask{color:#0b2545;font-weight:bold}
