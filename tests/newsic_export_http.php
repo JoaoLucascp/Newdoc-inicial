@@ -44,7 +44,7 @@ try {
 
     unset($_SESSION['user']);
     $anonymous = $request('GET');
-    $assert($anonymous->status === 302 && ($anonymous->headers['Location'] ?? '') === '/login', 'anônimo redirecionado para login');
+    $assert($anonymous->status === 303 && ($anonymous->headers['Location'] ?? '') === '/login', 'anônimo redirecionado para login');
     $_SESSION['user'] = ['id' => 1, 'name' => 'Leitor fictício', 'role' => 'viewer'];
     $assert($request('GET')->status === 403, 'leitor sem acesso ao formulário');
     $assert($request('POST', ['_csrf' => $token, 'format' => 'pdf'])->status === 403, 'leitor sem download');
