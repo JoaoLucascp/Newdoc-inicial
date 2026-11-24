@@ -99,3 +99,128 @@ document.querySelectorAll('[data-sidebar-toggle]').forEach((toggle) => {
     document.addEventListener('visibilitychange', () => { if (document.hidden) closeAll(); });
     window.addEventListener('pagehide', closeAll);
 })();
+
+(() => {
+    const match = location.pathname.match(/^\/newsic\/([1-9][0-9]*)$/);
+    if (!match || typeof HTMLDialogElement === 'undefined' || typeof HTMLDialogElement.prototype.showModal !== 'function') return;
+    const path = '/newsic/' + match[1] + '/exportar';
+    const trigger = Array.from(document.querySelectorAll('a[href]')).find((a) => a.getAttribute('href') === path);
+    if (!trigger) return;
+    const stylesheet = document.createElement('link');
+    stylesheet.rel = 'stylesheet';
+    stylesheet.href = '/assets/newsic-export-modal.css';
+    document.head.append(stylesheet);
+    const dialog = document.createElement('dialog');
+    dialog.className = 'newsic-export-dialog';
+    dialog.setAttribute('aria-labelledby', 'newsic-export-title');
+    const header = document.createElement('div');
+    header.className = 'newsic-export-dialog-heading';
+    const title = document.createElement('h2');
+    title.id = 'newsic-export-title';
+    title.textContent = 'Exportar documentação Newsic';
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'button button-secondary';
+    close.textContent = 'Fechar';
+    close.autofocus = true;
+    header.append(title, close);
+    const status = document.createElement('p');
+    status.className = 'newsic-export-dialog-status';
+    status.setAttribute('role', 'status');
+    status.setAttribute('aria-live', 'polite');
+    const content = document.createElement('div');
+    content.className = 'newsic-export-dialog-content';
+    dialog.append(header, status, content);
+    document.body.append(dialog);
+    let loading = null;
+    let busy = false;
+    close.addEventListener('click', () => { if (!busy) dialog.close(); });
+    dialog.addEventListener('cancel', (event) => { if (busy) event.preventDefault(); });
+    dialog.addEventListener('close', () => {
+        loading?.abort();
+        loading = null;
+        content.replaceChildren();
+        status.textContent = '';
+        document.body.classList.remove('newsic-export-modal-open');
+        trigger.focus();
+    });
+    trigger.addEventListener('click', async (event) => {
+        if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+        event.preventDefault();
+        if (dialog.open) return;
+        document.body.classList.add('newsic-export-modal-open');
+        status.textContent = 'Carregando opções de exportação…';
+        dialog.showModal();
+        const controller = new AbortController();
+        loading = controller;
+        try {
+            const response = await fetch(path, { credentials: 'same-origin', cache: 'no-store', redirect: 'error', signal: controller.signal });
+            if (!response.ok) throw new Error();
+            const page = new DOMParser().parseFromString(await response.text(), 'text/html');
+            if (controller.signal.aborted || !dialog.open) return;
+            const panels = page.querySelectorAll('.page-content > .panel');
+            if (panels.length !== 2) throw new Error();
+            const subtitle = page.querySelector('.page-subtitle');
+            if (subtitle) {
+                const label = document.createElement('p');
+                label.className = 'page-subtitle';
+                label.textContent = subtitle.textContent;
+                content.append(label);
+            }
+            panels.forEach((panel) => {
+                const copy = document.importNode(panel, true);
+                copy.querySelectorAll('script, iframe, object, embed').forEach((node) => node.remove());
+                copy.querySelectorAll('.form-actions a').forEach((node) => node.remove());
+                content.append(copy);
+            });
+            status.textContent = '';
+        } catch {
+            if (!controller.signal.aborted) status.textContent = 'Não foi possível carregar as opções. Feche e tente novamente. Se a sessão expirou, atualize a página.';
+        } finally {
+            if (loading === controller) loading = null;
+        }
+    });
+    dialog.addEventListener('submit', async (event) => {
+        const form = event.target;
+        if (!(form instanceof HTMLFormElement)) return;
+        event.preventDefault();
+        if (busy || !form.reportValidity()) return;
+        const action = new URL(form.action, location.origin);
+        if (action.origin !== location.origin || action.pathname !== path || form.method.toLowerCase() !== 'post') return;
+        const data = new FormData(form);
+        const format = data.get('format');
+        if (!['pdf', 'csv'].includes(format)) return;
+        if (format === 'csv' && data.get('confirm_secrets') !== '1') return;
+        busy = true;
+        close.disabled = true;
+        const buttons = Array.from(content.querySelectorAll('button[type="submit"]'));
+        buttons.forEach((button) => { button.disabled = true; });
+        content.setAttribute('aria-busy', 'true');
+        status.textContent = 'Gerando arquivo. Aguarde sem fechar esta janela…';
+        try {
+            const response = await fetch(action, { method: 'POST', body: data, credentials: 'same-origin', cache: 'no-store', redirect: 'error' });
+            const type = (response.headers.get('Content-Type') || '').split(';')[0].trim().toLowerCase();
+            if (!response.ok || type !== (format === 'pdf' ? 'application/pdf' : 'text/csv')) throw new Error();
+            const blob = await response.blob();
+            if (blob.size === 0) throw new Error();
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            const name = (response.headers.get('Content-Disposition') || '').match(/filename="(newsic-[0-9]+-[0-9-]+\.(?:pdf|csv))"/);
+            link.download = name ? name[1] : 'newsic-' + match[1] + '.' + format;
+            document.body.append(link);
+            link.click();
+            link.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 60000);
+            form.reset();
+            status.textContent = 'Arquivo recebido. Download solicitado ao navegador.';
+        } catch {
+            status.textContent = 'Não foi possível concluir o download. Confira os downloads do navegador antes de tentar novamente. Se a sessão expirou, atualize a página.';
+        } finally {
+            busy = false;
+            close.disabled = false;
+            buttons.forEach((button) => { button.disabled = false; });
+            content.removeAttribute('aria-busy');
+        }
+    });
+})();

@@ -1,0 +1,16 @@
+body.newsic-export-modal-open{overflow:hidden}
+.newsic-export-dialog{box-sizing:border-box;width:min(760px,calc(100vw - 32px));max-height:calc(100vh - 48px);padding:0;border:1px solid #dce3ef;border-radius:16px;background:#f5f7fb;color:#17243b;box-shadow:0 24px 80px #0e1c3c40;overflow:auto}
+.newsic-export-dialog::backdrop{background:rgba(10,22,45,.58)}
+.newsic-export-dialog-heading{position:sticky;top:0;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 24px;border-bottom:1px solid #e4e9f2;background:#fff}
+.newsic-export-dialog-heading h2{margin:0;font-size:20px;line-height:1.3}
+.newsic-export-dialog-status{margin:0;padding:14px 24px 0;font-size:14px;line-height:1.6}
+.newsic-export-dialog-status:empty{display:none}
+.newsic-export-dialog-content{padding:20px 24px 24px}
+.newsic-export-dialog-content>.page-subtitle{margin:0 0 18px}
+.newsic-export-dialog .panel{margin-bottom:16px}
+.newsic-export-dialog .panel:last-child{margin-bottom:0}
+.newsic-export-dialog .panel>p,.newsic-export-dialog .panel>.notice{margin:16px 20px}
+.newsic-export-dialog .panel>form{padding:0 20px 20px}
+.newsic-export-dialog .checkbox-label{align-items:flex-start;line-height:1.6}
+.newsic-export-dialog button:disabled{opacity:.6;cursor:wait}
+@media(max-width:600px){.newsic-export-dialog-heading{padding:16px}.newsic-export-dialog-heading h2{font-size:17px}.newsic-export-dialog-content{padding:16px}.newsic-export-dialog .form-actions{flex-wrap:wrap}}
