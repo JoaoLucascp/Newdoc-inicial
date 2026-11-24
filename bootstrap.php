@@ -6,6 +6,10 @@ if (!defined('NEWDOC_ROOT')) {
     define('NEWDOC_ROOT', __DIR__);
 }
 
+if (is_file(NEWDOC_ROOT . '/vendor/autoload.php')) {
+    require_once NEWDOC_ROOT . '/vendor/autoload.php';
+}
+
 spl_autoload_register(static function (string $class): void {
     $prefix = 'NewDoc\\';
     if (!str_starts_with($class, $prefix)) {

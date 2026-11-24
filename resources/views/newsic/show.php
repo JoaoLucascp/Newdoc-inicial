@@ -13,7 +13,12 @@ $typeLabels = ['virtual' => 'Virtual', 'cloud' => 'Cloud', 'fisico' => 'Físico'
         <h1><?= h($instance['server_name']) ?></h1>
         <p class="page-subtitle"><?= h($typeLabels[$instance['server_type']] ?? 'Tipo não informado') ?> · <?= h($instance['company_name']) ?></p>
     </div>
-    <?php if ($canManage): ?><a class="button button-secondary" href="/newsic/<?= h($instance['id']) ?>/editar">Editar servidor</a><?php endif; ?>
+    <?php if ($canManage): ?>
+        <div class="form-actions">
+            <a class="button button-secondary" href="/newsic/<?= h($instance['id']) ?>/editar">Editar servidor</a>
+            <a class="button button-secondary" href="/newsic/<?= h($instance['id']) ?>/exportar">Exportar</a>
+        </div>
+    <?php endif; ?>
 </div>
 <?php if ($errors !== []): ?><div class="alert alert-error" role="alert">
     <strong>Não foi possível salvar as alterações:</strong>
