@@ -262,7 +262,14 @@ try {
     expect(!NewDoc\Csrf::verify('token-invalido'), 'Um token CSRF inválido deve ser recusado.');
     NewDoc\Session::destroy();
 
-    foreach (['newsic_extension_csv.php', 'newsic_extension_import.php', 'newsic_extension_delete.php'] as $suite) {
+    foreach ([
+        'newsic_extension_csv.php',
+        'newsic_extension_import.php',
+        'newsic_extension_delete.php',
+        'newsic_export.php',
+        'newsic_pdf_report.php',
+        'newsic_export_http.php',
+    ] as $suite) {
         $process = proc_open(
             [PHP_BINARY, __DIR__ . DIRECTORY_SEPARATOR . $suite],
             [1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
@@ -283,7 +290,7 @@ try {
 
     $pdo = null;
     NewDoc\Database::resetConnection();
-    fwrite(STDOUT, "OK: migrations, Newsic, Newbot, homônimos, hash de senha, criptografia, auditoria sensível, CSRF e suítes Newsic de CSV, importação e exclusão.\n");
+    fwrite(STDOUT, "OK: migrations, Newsic, Newbot, homônimos, hash de senha, criptografia, auditoria sensível, CSRF e suítes Newsic de CSV, importação, exclusão, exportação, PDF e rotas.\n");
 } finally {
     if (session_status() === PHP_SESSION_ACTIVE) {
         NewDoc\Session::destroy();
