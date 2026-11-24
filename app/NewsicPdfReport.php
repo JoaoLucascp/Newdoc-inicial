@@ -9,7 +9,7 @@ use Dompdf\Dompdf;
 use Dompdf\Options;
 use RuntimeException;
 
-/** Renders the Newsic technical sheet. It never receives or prints credential values. */
+/** Renders the Newsic technical sheet without credential values. */
 final class NewsicPdfReport
 {
     private const MASK = '••••••••';
@@ -41,12 +41,11 @@ final class NewsicPdfReport
     public function html(array $company, array $instance, array $sections, DateTimeImmutable $at): string
     {
         $id = str_pad((string) (int) ($instance['id'] ?? 0), 3, '0', STR_PAD_LEFT);
-        $version = $instance['software_version'] ?? null;
         $h = '<!doctype html><html lang="pt-BR"><head><meta charset="UTF-8"><style>' . $this->css() . '</style></head><body>';
         $h .= '<div id="hdr"><table class="w"><tr><td><span class="b1">NEWSIC</span><br><span class="b2">IPBX · Documentação técnica</span></td><td class="r"><span class="n1">NEWTEL</span> <span class="n2">SOLUÇÕES</span></td></tr></table></div>';
         $h .= '<div id="ftr"><b>NEWTEL SOLUÇÕES</b> · Documento confidencial · Newsic · Servidor #' . $this->e($id) . '</div>';
         $h .= '<h1>FICHA TÉCNICA DO SERVIDOR</h1><div class="sub">Inventário de infraestrutura e configuração · ' . $this->e((string) ($company['name'] ?? '')) . '</div>';
-        $h .= '<table class="strip"><tr><td><b>ID:</b> ' . $this->e($id) . '</td><td><b>Versão:</b> ' . $this->text($version) . '</td><td><b>Gerado em:</b> ' . $this->e($at->format('d/m/Y H:i')) . '</td><td class="r">' . $this->badge((string) ($instance['status'] ?? '')) . '</td></tr></table>';
+        $h .= '<table class="strip"><tr><td><b>ID:</b> ' . $this->e($id) . '</td><td><b>Versão:</b> ' . $this->text($instance['software_version'] ?? null) . '</td><td><b>Gerado em:</b> ' . $this->e($at->format('d/m/Y H:i')) . '</td><td class="r">' . $this->badge((string) ($instance['status'] ?? '')) . '</td></tr></table>';
         $h .= $this->server($company, $instance);
         $h .= $this->extensions($sections['ramais'] ?? []);
         $h .= $this->trunks($sections['troncos'] ?? []);
@@ -134,8 +133,8 @@ final class NewsicPdfReport
 
     private function networks(array $rows): string
     {
+        if ($rows === []) return $this->emptySection('Redes');
         $h = $this->bar('Redes', count($rows));
-        if ($rows === []) return $h . '<div class="emptybox">Nenhum registro cadastrado.</div>';
         foreach ($rows as $r) {
             $pairs = [
                 ['Gateway', $this->text($r['gateway'] ?? null)], ['Tipo de rede', $this->text($r['network_type'] ?? null)],
@@ -145,26 +144,63 @@ final class NewsicPdfReport
                 ['IP de áudio', $this->text($r['audio_ip'] ?? null)], ['Máscara de áudio', $this->text($r['audio_subnet_mask'] ?? null)],
                 ['Gateway de áudio', $this->text($r['audio_gateway'] ?? null)], ['', ''],
             ];
-            $h .= '<div class="cardh">Rede #' . $this->e((string) ($r['id'] ?? '')) . '</div>' . $this->kv($pairs, $r['notes'] ?? null);
+            $label = 'Rede #' . (string) ($r['id'] ?? '');
+            $heading = '<tr><th class="cardh" colspan="4">' . $this->e($label) . '</th></tr>';
+            $content = $this->kv($pairs, $r['notes'] ?? null);
+            $moderate = $this->moderate($content);
+            if ($moderate) {
+                $h .= '<div class="network-card keep">' . '<div class="cardh">' . $this->e($label) . '</div>' . $content . '</div>';
+            } else {
+                $content = str_replace('<table class="kv">', '<table class="kv"><thead>' . $heading . '</thead><tbody>', $content);
+                $content = substr($content, 0, -8) . '</tbody></table>';
+                $h .= $content;
+            }
         }
         return $h;
     }
 
+    private function emptySection(string $title): string
+    {
+        return '<div class="empty-section keep">' . $this->bar($title, 0)
+            . '<div class="emptybox">Nenhum registro cadastrado.</div></div>';
+    }
+
+    /** Conservative grouping only; large content must remain breakable. */
+    private function moderate(string $html): bool
+    {
+        return mb_strlen(strip_tags($html)) <= 1800 && substr_count($html, '<br>') <= 16;
+    }
+
     private function table(string $title, array $columns, array $rows): string
     {
+        if ($rows === []) return $this->emptySection($title);
         $n = count($columns);
-        $h = '<table class="grid"><thead><tr><th class="bar" colspan="' . ($n - 2) . '">' . $this->e(mb_strtoupper($title)) . '</th><th class="bar r" colspan="2"><span class="pill">' . count($rows) . ' registro(s)</span></th></tr><tr>';
-        foreach ($columns as [$label, $width]) $h .= '<th class="col" style="width:' . $width . '%">' . $this->e(mb_strtoupper($label)) . '</th>';
-        $h .= '</tr></thead>';
-        if ($rows === []) return $h . '<tbody><tr><td colspan="' . $n . '" class="empty">Nenhum registro cadastrado.</td></tr></tbody></table>';
+        $totalWidth = array_sum(array_column($columns, 1));
+        $colgroup = '<colgroup>';
+        foreach ($columns as [$label, $width]) $colgroup .= '<col style="width:' . (100 * $width / $totalWidth) . '%">';
+        $colgroup .= '</colgroup>';
+        $h = '<table class="grid">' . $colgroup . '<thead><tr><th class="bar" colspan="' . ($n - 2) . '">' . $this->e(mb_strtoupper($title)) . '</th><th class="bar r" colspan="2"><span class="pill">' . count($rows) . ' registro(s)</span></th></tr><tr>';
+        foreach ($columns as [$label, $width]) $h .= '<th class="col">' . $this->e(mb_strtoupper($label)) . '</th>';
+        $h .= '</tr></thead><tbody>';
         foreach ($rows as $index => $row) {
-            $h .= '<tbody class="rec"><tr class="' . ($index % 2 ? 'alt' : '') . '">';
-            foreach ($row['cells'] as $cell) $h .= '<td>' . $cell . '</td>';
-            $h .= '</tr>';
-            if (trim((string) ($row['note'] ?? '')) !== '') $h .= '<tr class="note"><td colspan="' . $n . '"><b>Observações:</b> ' . $this->text($row['note']) . '</td></tr>';
-            $h .= '</tbody>';
+            $data = '<tr class="' . ($index % 2 ? 'alt' : '') . '">';
+            foreach ($row['cells'] as $cell) $data .= '<td>' . $cell . '</td>';
+            $data .= '</tr>';
+            $note = trim((string) ($row['note'] ?? ''));
+            $noteHtml = $note === '' ? '' : '<tr class="note"><td colspan="' . $n . '"><b>Observações:</b> ' . $this->text($note) . '</td></tr>';
+            if ($this->moderate($data . $noteHtml)) {
+                $h .= '<tr class="record-unit"><td class="record-shell" colspan="' . $n . '"><table class="record-grid">' . $colgroup . '<tbody>' . $data . $noteHtml . '</tbody></table></td></tr>';
+            } else {
+                $h .= $data;
+                if ($note !== '') {
+                    $context = $this->e($title) . ' · registro ' . ($index + 1) . ' · ' . strip_tags($row['cells'][0], '<br>');
+                    foreach (mb_str_split($note, 600) as $part) {
+                        $h .= '<tr class="note"><td colspan="' . $n . '"><b>Observações — ' . $context . ':</b> ' . $this->text($part) . '</td></tr>';
+                    }
+                }
+            }
         }
-        return $h . '</table>';
+        return $h . '</tbody></table>';
     }
 
     private function bar(string $title, ?int $count): string
@@ -181,7 +217,9 @@ final class NewsicPdfReport
             foreach ($row as [$label, $value]) $h .= '<td class="l">' . $this->e($label) . '</td><td class="v">' . $value . '</td>';
             $h .= '</tr>';
         }
-        if (trim((string) $note) !== '') $h .= '<tr><td class="l">Observações</td><td class="v" colspan="3">' . $this->text($note) . '</td></tr>';
+        if (trim((string) $note) !== '') {
+            foreach (mb_str_split((string) $note, 600) as $part) $h .= '<tr><td class="l">Observações</td><td class="v" colspan="3">' . $this->text($part) . '</td></tr>';
+        }
         return $h . '</table>';
     }
 
@@ -208,7 +246,6 @@ final class NewsicPdfReport
         return $time === false ? $this->text($value) : $this->e(date('d/m/Y H:i', $time));
     }
 
-    /** Escapes text and breaks very long tokens so no value is clipped by a narrow column. */
     private function text(mixed $value): string
     {
         $s = trim((string) ($value ?? ''));
@@ -245,17 +282,19 @@ h1{font-size:20pt;color:#0b2545;margin:0 0 2px 0}
 .sub{font-size:10pt;color:#44546a;margin-bottom:10px}
 .strip{width:100%;background:#eef3fa;border:1px solid #cfd9e8;margin-bottom:12px}
 .strip td{padding:7px 9px;font-size:9pt;color:#0b2545}
-.barbox{width:100%;background:#0b2545;margin-top:6px}
+.barbox{width:100%;background:#0b2545;margin-top:6px;page-break-after:avoid}
 .bt{color:#fff;font-size:10pt;font-weight:bold;padding:6px 8px}
 .bc{text-align:right;white-space:nowrap;padding:6px 8px}
-.grid{width:100%;margin:6px 0 14px 0}
+.grid{width:100%;margin:6px 0 14px 0;table-layout:fixed}
 th.bar{background:#0b2545;color:#fff;font-size:10pt;text-align:left;padding:6px 8px}
 th.bar.r{text-align:right;white-space:nowrap}
 th.col{background:#e8eef7;color:#0b2545;font-size:7pt;text-align:left;border:1px solid #cfd9e8;padding:4px 5px}
 td{border:1px solid #d6deea;padding:4px 5px;vertical-align:top;font-size:8pt}
 tr.alt td{background:#f6f9fd}
 tr.note td{background:#f1f5fb;color:#33445c;font-size:7.5pt}
-tr.rec,tbody.rec{page-break-inside:avoid}
+.keep,.record-unit{page-break-inside:avoid}
+.record-shell{padding:0;border:0}
+.record-grid{width:100%;margin:0;table-layout:fixed}
 td.empty,.emptybox{text-align:center;color:#6b7a90;padding:10px}
 .emptybox{border:1px solid #d6deea;margin-bottom:14px}
 .pill{background:#1f6feb;color:#fff;font-size:7pt;padding:2px 7px;white-space:nowrap}
@@ -266,7 +305,7 @@ td.empty,.emptybox{text-align:center;color:#6b7a90;padding:10px}
 .kv{width:100%;margin-bottom:6px}
 .kv td.l{width:17%;background:#f6f9fd;color:#44546a;font-weight:bold}
 .kv td.v{width:33%}
-.cardh{background:#e8eef7;color:#0b2545;font-weight:bold;padding:4px 8px;border:1px solid #cfd9e8;margin-top:8px}
+.cardh{background:#e8eef7;color:#0b2545;font-weight:bold;padding:4px 8px;border:1px solid #cfd9e8;margin-top:8px;text-align:left;page-break-after:avoid}
 CSS;
     }
 }
