@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace NewDoc;
 
+use DateTimeImmutable;
 use PDO;
 use RuntimeException;
 use Throwable;
-use Dompdf\Dompdf;
-use Dompdf\Options;
 
 final class NewsicExport
 {
@@ -24,10 +23,13 @@ final class NewsicExport
 
     public function __construct(private PDO $pdo) {}
 
-    /** Generates an authorized report; the HTTP layer must separately validate CSRF. */
+    /**
+     * PDF never contains credentials and needs no secret confirmation; CSV keeps readable
+     * credentials and requires explicit confirmation. CSRF is validated by the HTTP layer.
+     */
     public function generate(int $instanceId, string $format, bool $confirmed = false): array
     {
-        if (!$confirmed || $instanceId < 1 || !in_array($format, ['csv', 'pdf'], true)) {
+        if ($instanceId < 1 || !in_array($format, ['csv', 'pdf'], true) || ($format === 'csv' && !$confirmed)) {
             throw new RuntimeException('Confirmação, servidor ou formato inválido.');
         }
         $user = Auth::user();
@@ -53,25 +55,18 @@ final class NewsicExport
             $companyQuery->execute([$instance['company_id']]);
             $company = $companyQuery->fetch(PDO::FETCH_ASSOC);
             if (!$company) throw new RuntimeException('Empresa não encontrada.');
-            $rows = [
-                ['documento', '0', 'aviso', 'CONFIDENCIAL: contém senhas legíveis. Guarde em local protegido.'],
-                ['documento', '0', 'gerado_em', date(DATE_ATOM)],
-                ['documento', '0', 'formato', $format],
-            ];
-            if ($format === 'csv') $rows[] = ['documento', '0', 'protecao_csv', 'Valores iniciados por =, +, -, @ ou controles, inclusive após espaços, recebem apóstrofo de proteção. Não é modelo de importação.'];
-            $this->append($rows, 'empresa', $company);
-            $this->append($rows, 'servidor', $instance);
+            $sections = [];
             foreach (self::TABLES as $section => $table) {
                 $query = $this->pdo->prepare('SELECT ' . self::FIELDS[$section] . ' FROM ' . $table . ' WHERE newsic_instance_id = ? ORDER BY id');
                 $query->execute([$instanceId]);
-                $count = 0;
-                while ($record = $query->fetch(PDO::FETCH_ASSOC)) {
-                    $this->append($rows, $section, $record);
-                    $count++;
-                }
-                $rows[] = ['documento', '0', 'total_' . $section, (string) $count];
+                $sections[$section] = $query->fetchAll(PDO::FETCH_ASSOC);
             }
-            $content = $format === 'csv' ? $this->csv($rows) : $this->pdf($rows);
+            if ($format === 'csv') {
+                $content = $this->csv($this->csvRows($company, $instance, $sections));
+            } else {
+                $safe = array_map(static fn (array $records): array => array_map([self::class, 'redact'], $records), $sections);
+                $content = (new NewsicPdfReport())->render($company, self::redact($instance), $safe, new DateTimeImmutable());
+            }
             Audit::record($this->pdo, 'consulta', 'newsic_instances', $instanceId, 'exportacao_' . $format, (int) $instance['company_id'], true);
             $this->pdo->commit();
             return [
@@ -83,6 +78,37 @@ final class NewsicExport
             if ($this->pdo->inTransaction()) $this->pdo->rollBack();
             throw new RuntimeException('Não foi possível gerar a exportação. Nenhum arquivo foi disponibilizado.');
         }
+    }
+
+    /** Replaces ciphertext columns with a has_* flag so credentials never reach the PDF layout. */
+    public static function redact(array $record): array
+    {
+        $safe = [];
+        foreach ($record as $field => $value) {
+            if (str_ends_with((string) $field, '_encrypted')) {
+                $safe['has_' . substr((string) $field, 0, -10)] = $value !== null && $value !== '';
+            } else {
+                $safe[$field] = $value;
+            }
+        }
+        return $safe;
+    }
+
+    private function csvRows(array $company, array $instance, array $sections): array
+    {
+        $rows = [
+            ['documento', '0', 'aviso', 'CONFIDENCIAL: contém senhas legíveis. Guarde em local protegido.'],
+            ['documento', '0', 'gerado_em', date(DATE_ATOM)],
+            ['documento', '0', 'formato', 'csv'],
+            ['documento', '0', 'protecao_csv', 'Valores iniciados por =, +, -, @ ou controles, inclusive após espaços, recebem apóstrofo de proteção. Não é modelo de importação.'],
+        ];
+        $this->append($rows, 'empresa', $company);
+        $this->append($rows, 'servidor', $instance);
+        foreach ($sections as $section => $records) {
+            foreach ($records as $record) $this->append($rows, $section, $record);
+            $rows[] = ['documento', '0', 'total_' . $section, (string) count($records)];
+        }
+        return $rows;
     }
 
     private function append(array &$rows, string $section, array $record): void
@@ -116,31 +142,5 @@ final class NewsicExport
         } finally {
             fclose($stream);
         }
-    }
-
-    private function pdf(array $rows): string
-    {
-        if (!class_exists(Dompdf::class)) throw new RuntimeException('Biblioteca PDF indisponível.');
-        $escape = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-        $html = '<!doctype html><html lang="pt-BR"><head><meta charset="UTF-8"><style>@page{margin:28px}body{font-family:"DejaVu Sans",sans-serif;font-size:9pt}h1{font-size:15pt}table{width:100%;border-collapse:collapse;table-layout:fixed}td,th{border:1px solid #bbb;padding:4px;overflow-wrap:break-word}td{white-space:pre-wrap}thead{display:table-header-group}th{width:25%}</style></head><body><h1>NewDOC — Exportação Newsic</h1><p>CONFIDENCIAL — senhas legíveis. Documento gerado do cadastro NewDOC, sem consulta ao equipamento.</p><table><thead><tr><th>Seção</th><th>Registro</th><th>Campo</th><th>Valor</th></tr></thead><tbody>';
-        foreach ($rows as $row) {
-            // Small chunks avoid Dompdf's inability to paginate a single oversized cell.
-            $chunks = mb_str_split($row[3], 100);
-            if ($chunks === []) $chunks = [''];
-            foreach ($chunks as $index => $chunk) {
-                $html .= '<tr><td>' . $escape($row[0]) . '</td><td>' . $escape($row[1]) . '</td><td>' . $escape($row[2] . ($index > 0 ? ' (continuação)' : '')) . '</td><td>' . $escape($chunk) . '</td></tr>';
-            }
-        }
-        $html .= '</tbody></table></body></html>';
-        $options = new Options();
-        $options->set('isRemoteEnabled', false);
-        $options->set('isPhpEnabled', false);
-        $options->set('isJavascriptEnabled', false);
-        $options->set('defaultFont', 'DejaVu Sans');
-        $dompdf = new Dompdf($options);
-        $dompdf->setPaper('A4');
-        $dompdf->loadHtml($html, 'UTF-8');
-        $dompdf->render();
-        return $dompdf->output();
     }
 }

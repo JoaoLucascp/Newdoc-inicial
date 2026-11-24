@@ -46,13 +46,15 @@ final class NewsicExportController
         $status = 200;
         if ($method === 'POST') {
             $format = $_POST['format'] ?? '';
-            if (!is_string($format) || !in_array($format, ['csv', 'pdf'], true) || ($_POST['confirm_secrets'] ?? null) !== '1') {
-                $error = 'Escolha PDF ou CSV e confirme que o arquivo conterá senhas legíveis.';
-                $format = is_string($format) && in_array($format, ['csv', 'pdf'], true) ? $format : 'pdf';
+            $validFormat = is_string($format) && in_array($format, ['csv', 'pdf'], true);
+            $confirmed = $format === 'csv' ? ($_POST['confirm_secrets'] ?? null) === '1' : true;
+            if (!$validFormat || !$confirmed) {
+                $error = 'Escolha PDF ou CSV. O CSV exige confirmar que o arquivo conterá senhas legíveis.';
+                $format = $validFormat ? $format : 'pdf';
                 $status = 422;
             } else {
                 try {
-                    $report = (new NewsicExport($this->pdo))->generate($id, $format, true);
+                    $report = (new NewsicExport($this->pdo))->generate($id, $format, $confirmed);
                     return new Response(200, $report['content'], [
                         'Content-Type' => $report['content_type'],
                         'Content-Disposition' => 'attachment; filename="' . $report['filename'] . '"',
