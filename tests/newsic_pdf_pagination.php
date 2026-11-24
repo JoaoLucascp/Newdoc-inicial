@@ -35,4 +35,35 @@ $assert(str_contains($html, 'Observações — Ramais · registro 1 · 2004:'), 
 $assert(str_contains($html, '<thead><tr><th class="cardh" colspan="4">Rede #7</th></tr></thead>'), 'rede extensa tem identificação repetível');
 $pdf = $report->render($company, $instance, $sections, $at);
 $assert(str_starts_with($pdf, '%PDF-') && strlen($pdf) > 1000, 'cenário extenso renderiza');
-echo "OK: estrutura de seções vazias, registro com observação, redes e continuação identificada. Inspeção visual pendente.\n";
+
+$widthCases = [
+    'ramais' => [9, 11, 15, 14, 16, 9, 18, 8],
+    'troncos' => [17, 12, 15, 10, 9, 22, 15],
+    'ura' => [18, 14, 18, 20, 30],
+    'roteamentos' => [10, 14, 20, 20, 16, 20],
+];
+foreach ($widthCases as $section => $weights) {
+    foreach (['curta', str_repeat('Observação extensa fictícia. ', 120)] as $note) {
+        $html = $report->html($company, $instance, [$section => [['notes' => $note]]], $at);
+        $doc->loadHTML('<?xml encoding="UTF-8">' . $html, LIBXML_NOERROR | LIBXML_NOWARNING);
+        $xpath = new DOMXPath($doc);
+        $headers = $xpath->query('//table[@class="grid"]/thead/tr/th[@class="col"]');
+        $cells = $xpath->query('//table[@class="grid"]/tbody/tr/td[not(@colspan)] | //table[@class="record-grid"]/tbody/tr/td[not(@colspan)]');
+        $assert($headers->length === count($weights) && $cells->length === count($weights), 'quantidade de colunas: ' . $section);
+        foreach ($weights as $index => $weight) {
+            $expected = 'width:' . number_format(100 * $weight / array_sum($weights), 6, '.', '') . '%';
+            $assert($headers->item($index)->getAttribute('style') === $expected, 'largura explícita do cabeçalho: ' . $section);
+            $assert($cells->item($index)->getAttribute('style') === $expected, 'largura explícita da célula: ' . $section);
+        }
+        $bars = $xpath->query('//table[@class="grid"]/thead/tr/th[contains(@class, "bar")]');
+        $assert($bars->length === 2, 'título e contador repetíveis: ' . $section);
+        $sum = 0.0;
+        foreach ($bars as $bar) $sum += (float) substr($bar->getAttribute('style'), 6);
+        $assert(abs($sum - 100) < 0.00001, 'larguras dos cabeçalhos agrupados: ' . $section);
+        if ($section === 'ramais') {
+            $assert($headers->item(4)->textContent === 'DEPARTAMENTO' && $headers->item(4)->getElementsByTagName('br')->length === 1, 'departamento completo com quebra controlada');
+            $assert($headers->item(5)->textContent === 'GRAVAÇÃO' && $headers->item(5)->getElementsByTagName('br')->length === 1, 'gravação completa com quebra controlada');
+        }
+    }
+}
+echo "OK: estrutura de seções vazias, registro com observação, redes, continuação identificada e larguras explícitas. Inspeção visual pendente.\n";

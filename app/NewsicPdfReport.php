@@ -176,15 +176,25 @@ final class NewsicPdfReport
         if ($rows === []) return $this->emptySection($title);
         $n = count($columns);
         $totalWidth = array_sum(array_column($columns, 1));
+        $widths = array_map(static fn (array $column): string => number_format(100 * $column[1] / $totalWidth, 6, '.', '') . '%', $columns);
         $colgroup = '<colgroup>';
-        foreach ($columns as [$label, $width]) $colgroup .= '<col style="width:' . (100 * $width / $totalWidth) . '%">';
+        foreach ($widths as $width) $colgroup .= '<col style="width:' . $width . '">';
         $colgroup .= '</colgroup>';
-        $h = '<table class="grid">' . $colgroup . '<thead><tr><th class="bar" colspan="' . ($n - 2) . '">' . $this->e(mb_strtoupper($title)) . '</th><th class="bar r" colspan="2"><span class="pill">' . count($rows) . ' registro(s)</span></th></tr><tr>';
-        foreach ($columns as [$label, $width]) $h .= '<th class="col">' . $this->e(mb_strtoupper($label)) . '</th>';
+        $headingWidth = number_format(100 * array_sum(array_slice(array_column($columns, 1), 0, $n - 2)) / $totalWidth, 6, '.', '') . '%';
+        $countWidth = number_format(100 * array_sum(array_slice(array_column($columns, 1), -2)) / $totalWidth, 6, '.', '') . '%';
+        $h = '<table class="grid">' . $colgroup . '<thead><tr><th class="bar" style="width:' . $headingWidth . '" colspan="' . ($n - 2) . '">' . $this->e(mb_strtoupper($title)) . '</th><th class="bar r" style="width:' . $countWidth . '" colspan="2"><span class="pill">' . count($rows) . ' registro(s)</span></th></tr><tr>';
+        foreach ($columns as $index => [$label, $width]) {
+            $labelHtml = match ($label) {
+                'Departamento' => 'DEPARTA<br>MENTO',
+                'Gravação' => 'GRAVA<br>ÇÃO',
+                default => $this->e(mb_strtoupper($label)),
+            };
+            $h .= '<th class="col" style="width:' . $widths[$index] . '">' . $labelHtml . '</th>';
+        }
         $h .= '</tr></thead><tbody>';
         foreach ($rows as $index => $row) {
             $data = '<tr class="' . ($index % 2 ? 'alt' : '') . '">';
-            foreach ($row['cells'] as $cell) $data .= '<td>' . $cell . '</td>';
+            foreach ($row['cells'] as $cellIndex => $cell) $data .= '<td style="width:' . $widths[$cellIndex] . '">' . $cell . '</td>';
             $data .= '</tr>';
             $note = trim((string) ($row['note'] ?? ''));
             $noteHtml = $note === '' ? '' : '<tr class="note"><td colspan="' . $n . '"><b>Observações:</b> ' . $this->text($note) . '</td></tr>';
