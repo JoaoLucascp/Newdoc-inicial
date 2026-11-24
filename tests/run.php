@@ -269,6 +269,7 @@ try {
         'newsic_export.php',
         'newsic_pdf_report.php',
         'newsic_export_http.php',
+        'newsic_pdf_pagination.php',
     ] as $suite) {
         $process = proc_open(
             [PHP_BINARY, __DIR__ . DIRECTORY_SEPARATOR . $suite],
