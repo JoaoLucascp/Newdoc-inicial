@@ -15,7 +15,6 @@ $active = 'newsic';
 <?php if ($error !== null): ?><div class="alert alert-error" role="alert"><?= h($error) ?></div><?php endif; ?>
 <section class="panel">
     <div class="panel-heading"><h2>Ficha técnica em PDF</h2></div>
-    <p>Documento A4 para clientes e suporte com servidor, ramais, troncos, URA, direcionamentos e redes cadastrados. As senhas aparecem sempre mascaradas. Não consulta o equipamento Newsic.</p>
     <form action="/newsic/<?= h($instance['id']) ?>/exportar" method="post" class="form-grid" autocomplete="off">
         <input type="hidden" name="_csrf" value="<?= h(Csrf::token()) ?>">
         <input type="hidden" name="format" value="pdf">
@@ -28,9 +27,8 @@ $active = 'newsic';
 <section class="panel">
     <div class="panel-heading"><h2>CSV confidencial</h2></div>
     <div class="notice notice-warning" role="note">
-        O CSV conterá senhas web, SSH e dos ramais em texto legível, quando cadastradas. Depois do download, o NewDOC não controla cópias ou compartilhamentos. Guarde-o em local protegido. A geração será auditada sem registrar os valores das senhas.
+        O CSV contém senhas legíveis. Guarde-o em local seguro e compartilhe apenas com pessoas autorizadas. A exportação é auditada, sem registrar as senhas.
     </div>
-    <p>As colunas são seção, registro, campo e valor. Valores com risco de fórmula recebem um apóstrofo de proteção, inclusive senhas nessa condição. Este relatório não é modelo de importação.</p>
     <form action="/newsic/<?= h($instance['id']) ?>/exportar" method="post" class="form-grid" autocomplete="off">
         <input type="hidden" name="_csrf" value="<?= h(Csrf::token()) ?>">
         <input type="hidden" name="format" value="csv">
