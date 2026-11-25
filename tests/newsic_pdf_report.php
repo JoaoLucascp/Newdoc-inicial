@@ -55,4 +55,30 @@ for ($n = 1; $n <= 140; $n++) $many[] = $extension($n);
 $pdf = $report->render($company, $instance, ['ramais' => $many] + $sections, new DateTimeImmutable('2026-11-24 10:00:00'));
 $assert(str_starts_with($pdf, '%PDF-'), 'PDF renderizado');
 $assert((int) preg_match_all('/\/Type\s*\/Page(?![a-z])/', $pdf) > 1, 'paginação automática');
-echo "OK: ficha técnica PDF A4, seções, senhas mascaradas, escape, quebra de texto e paginação.\n";
+
+$labels = ['ramais' => 'RAMAIS', 'troncos' => 'TRONCOS', 'ura' => 'OPÇÕES DE URA', 'roteamentos' => 'DIRECIONAMENTOS', 'redes' => 'REDES'];
+$at = new DateTimeImmutable('2026-11-24 10:00:00');
+foreach (array_keys($labels) as $key) {
+    $single = $report->html($company, $instance, [$key => $sections[$key]], $at);
+    $assert(str_contains($single, 'DADOS DO SERVIDOR'), 'identificação mantida: ' . $key);
+    foreach ($labels as $other => $label) {
+        $assert(str_contains($single, $label) === ($other === $key), 'seleção única ' . $key . ': ' . $label);
+    }
+}
+$multiple = $report->html($company, $instance, ['ramais' => $sections['ramais'], 'troncos' => []], $at);
+foreach ($labels as $key => $label) {
+    $assert(str_contains($multiple, $label) === in_array($key, ['ramais', 'troncos'], true), 'seleção múltipla: ' . $label);
+}
+$assert(substr_count($multiple, 'Nenhum registro cadastrado.') === 1, 'somente troncos selecionados vazios exibem mensagem');
+$emptySelected = $report->html($company, $instance, ['ramais' => []], $at);
+$assert(str_contains($emptySelected, 'RAMAIS') && substr_count($emptySelected, 'Nenhum registro cadastrado.') === 1, 'seção selecionada vazia preservada');
+foreach (['TRONCOS', 'OPÇÕES DE URA', 'DIRECIONAMENTOS', 'REDES'] as $label) {
+    $assert(!str_contains($emptySelected, $label), 'seção não selecionada omitida: ' . $label);
+}
+$legacy = $report->html($company, $instance, [], $at);
+$assert(substr_count($legacy, 'Nenhum registro cadastrado.') === 5, 'chamada legada vazia mantém documento completo');
+$assert(!str_contains($emptySelected, 'Documento de origem'), 'documento de origem removido');
+$assert(str_contains($emptySelected, '<td class="l">Status</td>'), 'Status nos dados do servidor');
+$selectionPdf = $report->render($company, $instance, ['ramais' => [$extension(1)]], $at);
+$assert(str_starts_with($selectionPdf, '%PDF-'), 'PDF de seleção única renderizado');
+echo "OK: ficha técnica PDF A4, seleção única e múltipla de seções, senhas mascaradas, escape, quebra de texto e paginação.\n";

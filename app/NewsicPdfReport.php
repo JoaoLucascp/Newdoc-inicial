@@ -57,19 +57,22 @@ final class NewsicPdfReport
         $h .= '<div id="hdr"><table class="w"><tr><td><span class="b1">NEWSIC</span><br><span class="b2">IPBX · Documentação técnica</span></td><td class="r"><span class="n1">NEWTEL</span> <span class="n2">SOLUÇÕES</span></td></tr></table></div>';
         $h .= '<div id="ftr"><b>NEWTEL SOLUÇÕES</b> · Documento confidencial · Newsic · Servidor #' . $this->e($id) . '</div>';
         $h .= '<h1>FICHA TÉCNICA DO SERVIDOR</h1><div class="sub">Inventário de infraestrutura e configuração · ' . $this->e((string) ($company['name'] ?? '')) . '</div>';
-        $h .= '<table class="strip"><tr><td><b>ID:</b> ' . $this->e($id) . '</td><td><b>Versão:</b> ' . $this->text($instance['software_version'] ?? null) . '</td><td><b>Gerado em:</b> ' . $this->e($at->format('d/m/Y H:i')) . '</td><td class="r">' . $this->badge((string) ($instance['status'] ?? '')) . '</td></tr></table>';
+        $h .= '<table class="strip"><tr><td><b>ID:</b> ' . $this->e($id) . '</td><td><b>Versão:</b> ' . $this->text($instance['software_version'] ?? null) . '</td><td><b>Gerado em:</b> ' . $this->e($at->format('d/m/Y H:i')) . '</td></tr></table>';
         $h .= $this->server($company, $instance);
-        $h .= $this->extensions($sections['ramais'] ?? []);
-        $h .= $this->trunks($sections['troncos'] ?? []);
-        $h .= $this->ura($sections['ura'] ?? []);
-        $h .= $this->routings($sections['roteamentos'] ?? []);
-        $h .= $this->networks($sections['redes'] ?? []);
+        // Empty input preserves the legacy complete report used by sample generators.
+        // Otherwise, an absent key means unselected, not an empty selected section.
+        if ($sections === [] || array_key_exists('ramais', $sections)) $h .= $this->extensions($sections['ramais'] ?? []);
+        if ($sections === [] || array_key_exists('troncos', $sections)) $h .= $this->trunks($sections['troncos'] ?? []);
+        if ($sections === [] || array_key_exists('ura', $sections)) $h .= $this->ura($sections['ura'] ?? []);
+        if ($sections === [] || array_key_exists('roteamentos', $sections)) $h .= $this->routings($sections['roteamentos'] ?? []);
+        if ($sections === [] || array_key_exists('redes', $sections)) $h .= $this->networks($sections['redes'] ?? []);
         return $h . '</body></html>';
     }
 
     private function server(array $company, array $i): string
     {
         $pairs = [
+            ['Status', $this->badge((string) ($i['status'] ?? ''))],
             ['Instância', $this->text($i['server_name'] ?? null)],
             ['Tipo', $this->text(self::SERVER_TYPES[$i['server_type'] ?? ''] ?? ($i['server_type'] ?? null))],
             ['IP interno', $this->text($i['internal_ip'] ?? null)],

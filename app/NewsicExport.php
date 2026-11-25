@@ -23,11 +23,18 @@ final class NewsicExport
 
     public function __construct(private PDO $pdo) {}
 
+    /** Sections accepted by the PDF picker, in document order. */
+    public static function sections(): array
+    {
+        return array_keys(self::TABLES);
+    }
+
     /**
      * PDF never contains credentials and needs no secret confirmation; CSV keeps readable
      * credentials and requires explicit confirmation. CSRF is validated by the HTTP layer.
+     * The PDF honours $sections; the CSV always exports every section.
      */
-    public function generate(int $instanceId, string $format, bool $confirmed = false): array
+    public function generate(int $instanceId, string $format, bool $confirmed = false, array $sections = []): array
     {
         if ($instanceId < 1 || !in_array($format, ['csv', 'pdf'], true) || ($format === 'csv' && !$confirmed)) {
             throw new RuntimeException('Confirmação, servidor ou formato inválido.');
@@ -45,6 +52,7 @@ final class NewsicExport
         if ($this->pdo->inTransaction()) {
             throw new RuntimeException('A exportação exige transação própria.');
         }
+        $selected = $this->selectedSections($sections, $format);
         $this->pdo->beginTransaction();
         try {
             $query = $this->pdo->prepare('SELECT ' . self::FIELDS['servidor'] . ' FROM newsic_instances WHERE id = ?');
@@ -57,6 +65,7 @@ final class NewsicExport
             if (!$company) throw new RuntimeException('Empresa não encontrada.');
             $sections = [];
             foreach (self::TABLES as $section => $table) {
+                if (!in_array($section, $selected, true)) continue;
                 $query = $this->pdo->prepare('SELECT ' . self::FIELDS[$section] . ' FROM ' . $table . ' WHERE newsic_instance_id = ? ORDER BY id');
                 $query->execute([$instanceId]);
                 $sections[$section] = $query->fetchAll(PDO::FETCH_ASSOC);
@@ -78,6 +87,19 @@ final class NewsicExport
             if ($this->pdo->inTransaction()) $this->pdo->rollBack();
             throw new RuntimeException('Não foi possível gerar a exportação. Nenhum arquivo foi disponibilizado.');
         }
+    }
+
+    /**
+     * CSV always exports everything; the PDF exports only the chosen sections.
+     * An empty selection falls back to every section so old clients keep working.
+     */
+    private function selectedSections(array $sections, string $format): array
+    {
+        $all = array_keys(self::TABLES);
+        if ($format === 'csv' || $sections === []) return $all;
+        $valid = array_values(array_intersect($all, array_map('strval', $sections)));
+        if ($valid === []) throw new RuntimeException('Selecione ao menos uma seção para o PDF.');
+        return $valid;
     }
 
     /** Replaces ciphertext columns with a has_* flag so credentials never reach the PDF layout. */

@@ -44,17 +44,23 @@ final class NewsicExportController
         $error = null;
         $format = 'pdf';
         $status = 200;
+        $selected = NewsicExport::sections();
         if ($method === 'POST') {
             $format = $_POST['format'] ?? '';
             $validFormat = is_string($format) && in_array($format, ['csv', 'pdf'], true);
             $confirmed = $format === 'csv' ? ($_POST['confirm_secrets'] ?? null) === '1' : true;
-            if (!$validFormat || !$confirmed) {
-                $error = 'Escolha PDF ou CSV. O CSV exige confirmar que o arquivo conterá senhas legíveis.';
+            $requested = $_POST['sections'] ?? [];
+            $selected = is_array($requested) ? array_values(array_intersect(NewsicExport::sections(), array_map('strval', $requested))) : [];
+            $validSections = $format === 'csv' || $selected !== [];
+            if (!$validFormat || !$confirmed || !$validSections) {
+                $error = $format === 'csv'
+                    ? 'Escolha PDF ou CSV. O CSV exige confirmar que o arquivo conterá senhas legíveis.'
+                    : 'Escolha PDF ou CSV e marque ao menos uma seção para o PDF.';
                 $format = $validFormat ? $format : 'pdf';
                 $status = 422;
             } else {
                 try {
-                    $report = (new NewsicExport($this->pdo))->generate($id, $format, $confirmed);
+                    $report = (new NewsicExport($this->pdo))->generate($id, $format, $confirmed, $selected);
                     return new Response(200, $report['content'], [
                         'Content-Type' => $report['content_type'],
                         'Content-Disposition' => 'attachment; filename="' . $report['filename'] . '"',
@@ -65,6 +71,6 @@ final class NewsicExportController
                 }
             }
         }
-        return View::render('newsic/export', compact('instance', 'error', 'format'), $status);
+        return View::render('newsic/export', compact('instance', 'error', 'format', 'selected'), $status);
     }
 }
