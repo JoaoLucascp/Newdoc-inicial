@@ -69,7 +69,6 @@ final class NewsicPdfReport
 
     private function server(array $company, array $i): string
     {
-        $doc = !empty($i['source_document_id']) ? 'Documento #' . $this->e((string) $i['source_document_id']) : '<span class="muted">Não vinculado</span>';
         $pairs = [
             ['Instância', $this->text($i['server_name'] ?? null)],
             ['Tipo', $this->text(self::SERVER_TYPES[$i['server_type'] ?? ''] ?? ($i['server_type'] ?? null))],
@@ -82,7 +81,6 @@ final class NewsicPdfReport
             ['Porta SSH', $this->text($i['ssh_port'] ?? null)],
             ['Usuário SSH', $this->text($i['ssh_username'] ?? null)],
             ['Senha SSH', $this->secret($i['has_ssh_password'] ?? false)],
-            ['Documento de origem', $doc],
             ['Link FreeMyIP', $this->text($i['freemyip_link'] ?? null)],
             ['Documentação', $this->text($i['documentation_path'] ?? null)],
             ['Criada em', $this->date($i['created_at'] ?? null)],
@@ -225,13 +223,16 @@ final class NewsicPdfReport
         foreach ($widths as $width) $sizing .= '<th style="width:' . $width . '"></th>';
         $sizing .= '</tr>';
         $h = '<table class="grid' . ($withBar ? '' : ' head-grid') . '">' . $colgroup . '<thead>' . $sizing;
-        $headingWidth = number_format(100 * array_sum(array_slice(array_column($columns, 1), 0, $n - 2)) / $totalWidth, 6, '.', '') . '%';
-        $countWidth = number_format(100 * array_sum(array_slice(array_column($columns, 1), -2)) / $totalWidth, 6, '.', '') . '%';
-        $h .= '<tr><th class="bar" style="width:' . $headingWidth . '" colspan="' . ($n - 2) . '">' . $this->e(mb_strtoupper($title)) . '</th><th class="bar r" style="width:' . $countWidth . '" colspan="2"><span class="pill">' . $total . ' registro(s)</span></th></tr><tr>';
-        foreach ($columns as $index => [$label, $width, $align]) {
-            $h .= '<th class="col al-' . $align . '" style="width:' . $widths[$index] . '">' . $this->e(mb_strtoupper($label)) . '</th>';
+        if (!$withBar) {
+            $headingWidth = number_format(100 * array_sum(array_slice(array_column($columns, 1), 0, $n - 2)) / $totalWidth, 6, '.', '') . '%';
+            $countWidth = number_format(100 * array_sum(array_slice(array_column($columns, 1), -2)) / $totalWidth, 6, '.', '') . '%';
+            $h .= '<tr><th class="bar" style="width:' . $headingWidth . '" colspan="' . ($n - 2) . '">' . $this->e(mb_strtoupper($title)) . '</th><th class="bar r" style="width:' . $countWidth . '" colspan="2"><span class="pill">' . $total . ' registro(s)</span></th></tr><tr>';
+            foreach ($columns as $index => [$label, $width, $align]) {
+                $h .= '<th class="col al-' . $align . '" style="width:' . $widths[$index] . '">' . $this->e(mb_strtoupper($label)) . '</th>';
+            }
+            $h .= '</tr>';
         }
-        $h .= '</tr></thead><tbody>';
+        $h .= '</thead><tbody>';
         foreach ($rows as $index => $row) {
             $data = '<tr class="' . ($index % 2 ? 'alt' : '') . '">';
             foreach ($row['cells'] as $cellIndex => $cell) $data .= '<td class="al-' . $columns[$cellIndex][2] . '" style="width:' . $widths[$cellIndex] . '">' . $cell . '</td>';
