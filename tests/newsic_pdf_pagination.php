@@ -96,4 +96,44 @@ foreach ($widthCases as $section => $weights) {
         unset($renderer);
     }
 }
-echo "OK: estrutura de seções vazias, registro com observação, redes, continuação identificada, larguras explícitas e geometria renderizada. Inspeção visual pendente.\n";
+
+$metrics = (new Dompdf\Dompdf())->getFontMetrics();
+$measureFont = $metrics->getFont('DejaVu Sans');
+$wideFields = [
+    'ramais' => ['extension_number', 'ip_address', 'user_name', 'department'],
+    'troncos' => ['pilot_number', 'carrier', 'channel_quantity', 'ddrs'],
+    'ura' => ['ura_type', 'option', 'schedule', 'recording', 'destination'],
+    'roteamentos' => ['ipo', 'number', 'name', 'forwarding', 'recording', 'destination'],
+];
+foreach ($wideFields as $section => $fields) {
+    $weights = $widthCases[$section];
+    foreach (['W', 'AbC123', 'i'] as $unit) {
+        $row = ['notes' => 'curta'];
+        foreach ($fields as $field) $row[$field] = str_repeat($unit, 80);
+        $html = $report->html($company, $instance, [$section => [$row]], $at);
+        $doc->loadHTML('<?xml encoding="UTF-8">' . $html, LIBXML_NOERROR | LIBXML_NOWARNING);
+        $xpath = new DOMXPath($doc);
+        $cells = $xpath->query('//table[@class="grid"]/tbody/tr/td[not(@colspan)] | //table[@class="record-grid"]/tbody/tr/td[not(@colspan)]');
+        $assert($cells->length === count($weights), 'colunas na verificação de texto longo: ' . $section);
+        $checked = 0;
+        foreach ($weights as $index => $weight) {
+            $inner = 544.28 * $weight / array_sum($weights) - 8.5;
+            $text = '';
+            foreach ($cells->item($index)->childNodes as $child) {
+                if (!$child instanceof DOMText) continue;
+                $text .= $child->textContent;
+                $width = $metrics->getTextWidth($child->textContent, $measureFont, 8.0);
+                $assert($width <= $inner, 'texto cabe na coluna ' . ($index + 1) . ' de ' . $section . ' (' . $unit . '): ' . round($width, 1) . ' > ' . round($inner, 1));
+                $checked++;
+            }
+            if (in_array($index, array_keys($fields), true) || str_repeat($unit, 80) === $text) {
+                $assert($text === '' || str_starts_with($text, $unit) || $text === '—', 'conteúdo preservado sem corte na coluna ' . ($index + 1) . ' de ' . $section);
+            }
+        }
+        $assert($checked >= count($fields), 'textos longos verificados: ' . $section);
+        $all = '';
+        foreach ($cells as $cell) $all .= $cell->textContent;
+        $assert(substr_count($all, $unit) >= 80 * min(count($fields), 4) - 80 * 3 * ($unit === 'AbC123' ? 1 : 0), 'nenhum caractere removido: ' . $section);
+    }
+}
+echo "OK: estrutura de seções vazias, registro com observação, redes, continuação identificada, larguras explícitas, geometria renderizada e texto longo contido nas colunas. Inspeção visual pendente.\n";
