@@ -101,7 +101,7 @@ final class NewsicPdfReport
 
     private function extensions(array $rows): string
     {
-        $columns = [['Ramal', 9, 'r'], ['Senha', 11, 'c'], ['IP', 15, 'l'], ['Usuário', 14, 'l'], ['Departamento', 16, 'l'], ['Gravação', 9, 'c'], ['Permissões', 18, 'l'], ['Status', 8, 'c']];
+        $columns = [['Ramal', 9, 'l'], ['Senha', 11, 'l'], ['IP', 15, 'l'], ['Usuário', 14, 'l'], ['Departamento', 16, 'l'], ['Gravação', 9, 'l'], ['Permissões', 18, 'l'], ['Status', 8, 'l']];
         $w = $this->limits($columns);
         $out = [];
         foreach ($rows as $r) {
@@ -123,7 +123,7 @@ final class NewsicPdfReport
 
     private function trunks(array $rows): string
     {
-        $columns = [['Número piloto', 17, 'l'], ['Tipo', 12, 'l'], ['Operadora', 15, 'l'], ['Recebe', 10, 'c'], ['Canais', 9, 'r'], ['DDRs', 22, 'l'], ['Status', 15, 'c']];
+        $columns = [['Número piloto', 17, 'l'], ['Tipo', 12, 'l'], ['Operadora', 15, 'l'], ['Recebe', 10, 'l'], ['Canais', 9, 'l'], ['DDRs', 22, 'l'], ['Status', 15, 'l']];
         $w = $this->limits($columns);
         $out = [];
         foreach ($rows as $r) {
@@ -138,7 +138,7 @@ final class NewsicPdfReport
 
     private function ura(array $rows): string
     {
-        $columns = [['Tipo', 18, 'l'], ['Opção', 14, 'r'], ['Horário', 18, 'l'], ['Gravação', 20, 'l'], ['Destino', 30, 'l']];
+        $columns = [['Tipo', 18, 'l'], ['Opção', 14, 'l'], ['Horário', 18, 'l'], ['Gravação', 20, 'l'], ['Destino', 30, 'l']];
         $w = $this->limits($columns);
         $out = [];
         foreach ($rows as $r) {
@@ -215,12 +215,7 @@ final class NewsicPdfReport
         $countWidth = number_format(100 * array_sum(array_slice(array_column($columns, 1), -2)) / $totalWidth, 6, '.', '') . '%';
         $h = '<table class="grid">' . $colgroup . '<thead>' . $sizing . '<tr><th class="bar" style="width:' . $headingWidth . '" colspan="' . ($n - 2) . '">' . $this->e(mb_strtoupper($title)) . '</th><th class="bar r" style="width:' . $countWidth . '" colspan="2"><span class="pill">' . count($rows) . ' registro(s)</span></th></tr><tr>';
         foreach ($columns as $index => [$label, $width, $align]) {
-            $labelHtml = match ($label) {
-                'Departamento' => 'DEPARTA<br>MENTO',
-                'Gravação' => 'GRAVA<br>ÇÃO',
-                default => $this->e(mb_strtoupper($label)),
-            };
-            $h .= '<th class="col al-' . $align . '" style="width:' . $widths[$index] . '">' . $labelHtml . '</th>';
+            $h .= '<th class="col al-' . $align . '" style="width:' . $widths[$index] . '">' . $this->e(mb_strtoupper($label)) . '</th>';
         }
         $h .= '</tr></thead><tbody>';
         foreach ($rows as $index => $row) {
@@ -367,9 +362,8 @@ h1{font-size:20pt;color:#0b2545;margin:0 0 2px 0}
 .column-widths th{height:0;line-height:0;font-size:0;padding:0;border:0}
 th.bar{background:#0b2545;color:#fff;font-size:10pt;text-align:left;padding:6px 8px}
 th.bar.r{text-align:right;white-space:nowrap}
-th.col{background:#e8eef7;color:#0b2545;font-size:7pt;border:1px solid #cfd9e8;padding:4px 5px}
-td{border:1px solid #d6deea;padding:4px 5px;vertical-align:top;font-size:8pt}
-th.col,td{word-wrap:break-word;overflow-wrap:break-word;white-space:normal}
+th.col{background:#e8eef7;color:#0b2545;font-size:7pt;border:1px solid #cfd9e8;padding:4px 5px;white-space:nowrap}
+td{border:1px solid #d6deea;padding:4px 5px;vertical-align:top;font-size:8pt;word-wrap:break-word;overflow-wrap:break-word;white-space:normal}
 .al-l{text-align:left}.al-c{text-align:center}.al-r{text-align:right}
 tr.alt td{background:#f6f9fd}
 tr.note td{background:#f1f5fb;color:#33445c;font-size:7.5pt}

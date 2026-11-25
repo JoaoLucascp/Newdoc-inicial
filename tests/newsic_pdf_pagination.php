@@ -63,14 +63,13 @@ foreach ($widthCases as $section => $weights) {
         $sum = 0.0;
         foreach ($bars as $bar) $sum += (float) substr($bar->getAttribute('style'), 6);
         $assert(abs($sum - 100) < 0.00001, 'larguras dos cabeçalhos agrupados: ' . $section);
-        if ($section === 'ramais') {
-            $assert($headers->item(4)->textContent === 'DEPARTAMENTO' && $headers->item(4)->getElementsByTagName('br')->length === 1, 'departamento completo com quebra controlada');
-            $assert($headers->item(5)->textContent === 'GRAVAÇÃO' && $headers->item(5)->getElementsByTagName('br')->length === 1, 'gravação completa com quebra controlada');
+        foreach ($headers as $header) {
+            $assert($header->getElementsByTagName('br')->length === 0, 'cabeçalho em linha única: ' . $section);
         }
         foreach ($weights as $index => $weight) {
             preg_match('/al-[lcr]/', $headers->item($index)->getAttribute('class'), $headerAlign);
             preg_match('/al-[lcr]/', $cells->item($index)->getAttribute('class'), $cellAlign);
-            $assert(($headerAlign[0] ?? '') !== '' && ($headerAlign[0] ?? '') === ($cellAlign[0] ?? ''), 'alinhamento do dado igual ao do cabeçalho: ' . $section . ' coluna ' . ($index + 1));
+            $assert(($headerAlign[0] ?? '') === 'al-l' && ($cellAlign[0] ?? '') === 'al-l', 'cabeçalho e dado alinhados à esquerda: ' . $section . ' coluna ' . ($index + 1));
         }
 
         $geometry = ['headers' => [], 'cells' => []];
@@ -141,4 +140,4 @@ foreach ($wideFields as $section => $fields) {
         $assert(substr_count($all, $unit) >= 80 * min(count($fields), 4) - 80 * 3 * ($unit === 'AbC123' ? 1 : 0), 'nenhum caractere removido: ' . $section);
     }
 }
-echo "OK: estrutura de seções vazias, registro com observação, redes, continuação identificada, larguras explícitas, alinhamento igual ao cabeçalho, geometria renderizada e texto longo contido nas colunas. Inspeção visual pendente.\n";
+echo "OK: seções vazias, registro com observação, redes, larguras explícitas, cabeçalho em linha única, tudo à esquerda, geometria renderizada e texto longo contido nas colunas. Inspeção visual pendente.\n";
