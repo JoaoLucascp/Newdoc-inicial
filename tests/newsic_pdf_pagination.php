@@ -47,7 +47,7 @@ foreach ($widthCases as $section => $weights) {
         $html = $report->html($company, $instance, [$section => [['notes' => $note]]], $at);
         $doc->loadHTML('<?xml encoding="UTF-8">' . $html, LIBXML_NOERROR | LIBXML_NOWARNING);
         $xpath = new DOMXPath($doc);
-        $headers = $xpath->query('//table[@class="grid"]/thead/tr/th[@class="col"]');
+        $headers = $xpath->query('//table[@class="grid"]/thead/tr/th[starts-with(@class, "col")]');
         $cells = $xpath->query('//table[@class="grid"]/tbody/tr/td[not(@colspan)] | //table[@class="record-grid"]/tbody/tr/td[not(@colspan)]');
         $assert($headers->length === count($weights) && $cells->length === count($weights), 'quantidade de colunas: ' . $section);
         $sizing = $xpath->query('//table[@class="grid"]/thead/tr[1][@class="column-widths"]/th[not(@colspan)]');
@@ -84,7 +84,7 @@ foreach ($widthCases as $section => $weights) {
         $renderer->setCallbacks([['event' => 'end_frame', 'f' => static function ($frame) use (&$geometry): void {
             $node = $frame->get_node();
             if (!$node instanceof DOMElement) return;
-            if ($node->tagName === 'th' && $node->getAttribute('class') === 'col') {
+            if ($node->tagName === 'th' && str_starts_with($node->getAttribute('class'), 'col')) {
                 $geometry['headers'][] = $frame->get_border_box();
             } elseif ($node->tagName === 'td' && !$node->hasAttribute('colspan') && str_starts_with($node->getAttribute('style'), 'width:')) {
                 $geometry['cells'][] = $frame->get_border_box();
