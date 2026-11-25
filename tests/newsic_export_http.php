@@ -39,6 +39,7 @@ try {
     $get = $request('GET');
     $assert($get->status === 200, 'formulário autorizado');
     $assert(str_contains($get->body, 'name="_csrf"') && str_contains($get->body, 'name="confirm_secrets"'), 'formulários mantêm proteções');
+    $assert(str_contains($get->body, 'name="sections[]"'), 'formulário oferece seleção de seções');
     $assert(($get->headers['Cache-Control'] ?? '') === 'no-store, private', 'formulário sem cache');
     $assert($count() === 0, 'abrir opções não registra geração');
 
@@ -57,6 +58,8 @@ try {
     $assert($request('POST', ['_csrf' => 'invalido', 'format' => 'pdf'])->status === 419, 'CSRF inválido');
     $assert($request('POST', ['_csrf' => $token, 'format' => 'exe'])->status === 422, 'formato não permitido');
     $assert($request('POST', ['_csrf' => $token, 'format' => 'csv'])->status === 422, 'CSV sem autorização explícita');
+    $assert($request('POST', ['_csrf' => $token, 'format' => 'pdf'])->status === 422, 'PDF sem seção selecionada');
+    $assert($request('POST', ['_csrf' => $token, 'format' => 'pdf', 'sections' => ['inventada']])->status === 422, 'PDF com seção desconhecida');
     $assert($request('GET', [], 999)->status === 404, 'servidor inexistente');
     $unsupported = $request('PUT');
     $assert($unsupported->status === 405 && ($unsupported->headers['Allow'] ?? '') === 'GET, POST', 'método não permitido');
@@ -76,7 +79,7 @@ try {
     $insert->execute([$fakeCipher]);
     $redacted = NewsicExport::redact(['id' => 1, 'web_password_encrypted' => $fakeCipher]);
     $assert(!array_key_exists('web_password_encrypted', $redacted) && $redacted['has_web_password'] === true, 'redação remove credencial antes do layout');
-    $pdf = $request('POST', ['_csrf' => $token, 'format' => 'pdf']);
+    $pdf = $request('POST', ['_csrf' => $token, 'format' => 'pdf', 'sections' => ['ramais']]);
     $assert($pdf->status === 200 && ($pdf->headers['Content-Type'] ?? '') === 'application/pdf', 'PDF dispensa confirmação de senhas legíveis');
     $assert(str_starts_with($pdf->body, '%PDF-') && strlen($pdf->body) > 1000, 'PDF renderizado sem decifrar credenciais');
     $assert(str_contains($pdf->headers['Content-Disposition'] ?? '', '.pdf"'), 'nome do download PDF');
@@ -92,10 +95,10 @@ try {
     $assert($csvFailure->status === 500 && !isset($csvFailure->headers['Content-Disposition']), 'falha de decifragem impede download CSV');
     $assert(!str_contains($csvFailure->body, $fakeCipher) && $count() === 2, 'falha não expõe dados nem registra sucesso');
     $pdo->exec("CREATE TRIGGER block_export_audit BEFORE INSERT ON audit_logs BEGIN SELECT RAISE(ABORT,'falha ficticia'); END");
-    $failure = $request('POST', ['_csrf' => $token, 'format' => 'pdf']);
+    $failure = $request('POST', ['_csrf' => $token, 'format' => 'pdf', 'sections' => ['ramais']]);
     $assert($failure->status === 500 && !isset($failure->headers['Content-Disposition']) && !str_starts_with($failure->body, '%PDF-'), 'falha de auditoria impede entrega PDF');
     $assert(!$pdo->inTransaction() && $count() === 2, 'rollback após falha de auditoria');
-    echo "OK: rotas Newsic, autorização, CSRF, confirmação CSV, PDF sem decifragem, downloads e auditoria.\n";
+    echo "OK: rotas Newsic, autorização, CSRF, confirmação CSV, seleção de seções, PDF sem decifragem, downloads e auditoria.\n";
 } finally {
     $_SESSION = $sessionBefore;
     $_POST = $postBefore;
