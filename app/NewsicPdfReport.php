@@ -225,9 +225,12 @@ final class NewsicPdfReport
         foreach ($widths as $width) $sizing .= '<th style="width:' . $width . '"></th>';
         $sizing .= '</tr>';
         $h = '<table class="grid' . ($withBar ? '' : ' head-grid') . '">' . $colgroup . '<thead>' . $sizing;
-        $headingWidth = number_format(100 * array_sum(array_slice(array_column($columns, 1), 0, $n - 2)) / $totalWidth, 6, '.', '') . '%';
-        $countWidth = number_format(100 * array_sum(array_slice(array_column($columns, 1), -2)) / $totalWidth, 6, '.', '') . '%';
-        $h .= '<tr><th class="bar" style="width:' . $headingWidth . '" colspan="' . ($n - 2) . '">' . $this->e(mb_strtoupper($title)) . '</th><th class="bar r" style="width:' . $countWidth . '" colspan="2"><span class="pill">' . $total . ' registro(s)</span></th></tr><tr>';
+        if (!$withBar) {
+            $headingWidth = number_format(100 * array_sum(array_slice(array_column($columns, 1), 0, $n - 2)) / $totalWidth, 6, '.', '') . '%';
+            $countWidth = number_format(100 * array_sum(array_slice(array_column($columns, 1), -2)) / $totalWidth, 6, '.', '') . '%';
+            $h .= '<tr><th class="bar" style="width:' . $headingWidth . '" colspan="' . ($n - 2) . '">' . $this->e(mb_strtoupper($title)) . '</th><th class="bar r" style="width:' . $countWidth . '" colspan="2"><span class="pill">' . $total . ' registro(s)</span></th></tr>';
+        }
+        $h .= '<tr>';
         foreach ($columns as $index => [$label, $width, $align]) {
             $h .= '<th class="col al-' . $align . '" style="width:' . $widths[$index] . '">' . $this->e(mb_strtoupper($label)) . '</th>';
         }
