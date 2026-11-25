@@ -59,11 +59,13 @@ final class NewsicPdfReport
         $h .= '<h1>FICHA TÉCNICA DO SERVIDOR</h1><div class="sub">Inventário de infraestrutura e configuração · ' . $this->e((string) ($company['name'] ?? '')) . '</div>';
         $h .= '<table class="strip"><tr><td><b>ID:</b> ' . $this->e($id) . '</td><td><b>Versão:</b> ' . $this->text($instance['software_version'] ?? null) . '</td><td><b>Gerado em:</b> ' . $this->e($at->format('d/m/Y H:i')) . '</td></tr></table>';
         $h .= $this->server($company, $instance);
-        $h .= $this->extensions($sections['ramais'] ?? []);
-        $h .= $this->trunks($sections['troncos'] ?? []);
-        $h .= $this->ura($sections['ura'] ?? []);
-        $h .= $this->routings($sections['roteamentos'] ?? []);
-        $h .= $this->networks($sections['redes'] ?? []);
+        // Empty input preserves the legacy complete report used by sample generators.
+        // Otherwise, an absent key means unselected, not an empty selected section.
+        if ($sections === [] || array_key_exists('ramais', $sections)) $h .= $this->extensions($sections['ramais'] ?? []);
+        if ($sections === [] || array_key_exists('troncos', $sections)) $h .= $this->trunks($sections['troncos'] ?? []);
+        if ($sections === [] || array_key_exists('ura', $sections)) $h .= $this->ura($sections['ura'] ?? []);
+        if ($sections === [] || array_key_exists('roteamentos', $sections)) $h .= $this->routings($sections['roteamentos'] ?? []);
+        if ($sections === [] || array_key_exists('redes', $sections)) $h .= $this->networks($sections['redes'] ?? []);
         return $h . '</body></html>';
     }
 
