@@ -37,7 +37,14 @@ $assert(substr_count($html, '••••••••') >= 3, 'senhas configurad
 $assert(str_contains($html, 'Não configurada'), 'senha ausente não é inventada');
 $assert(str_contains($html, '&lt;b&gt;fictício&lt;/b&gt;') && !str_contains($html, '<b>fictício</b>'), 'HTML escapado');
 $assert(!str_contains($html, '_encrypted') && !str_contains($html, 'created_by') && !str_contains($html, 'company_id'), 'campos internos fora do PDF');
-$assert(str_contains($html, str_repeat('X', 26) . '<br>'), 'texto longo quebrado sem corte');
+$doc = new DOMDocument();
+$doc->loadHTML('<?xml encoding="UTF-8">' . $html, LIBXML_NOERROR | LIBXML_NOWARNING);
+$xpath = new DOMXPath($doc);
+$longCells = $xpath->query('//td[not(@colspan)][contains(., "XXXXXXXX")]');
+$assert($longCells->length === 1, 'texto longo localizado em uma única célula');
+$longCell = $longCells->item(0);
+$assert($longCell->textContent === str_repeat('X', 120), '120 caracteres preservados na ordem original, sem corte');
+$assert($longCell->getElementsByTagName('br')->length > 0, 'texto longo quebrado em linhas sem exigir blocos de 26 caracteres');
 
 $redacted = NewsicExport::redact(['id' => 1, 'web_password_encrypted' => 'TEXTO-CIFRADO', 'ssh_password_encrypted' => '']);
 $assert(!str_contains(json_encode($redacted, JSON_THROW_ON_ERROR), 'TEXTO-CIFRADO'), 'texto cifrado removido');
