@@ -24,8 +24,8 @@ $sections = [
 $html = $report->html($company, $instance, $sections, $at);
 $doc->loadHTML('<?xml encoding="UTF-8">' . $html, LIBXML_NOERROR | LIBXML_NOWARNING);
 $xpath = new DOMXPath($doc);
-$units = $xpath->query('//tr[@class="record-unit"]');
-$assert($units->length === 1 && str_contains($units->item(0)->textContent, '2004') && str_contains($units->item(0)->textContent, 'Observação do ramal 2004'), 'registro e observação na mesma linha externa');
+$heads = $xpath->query('//div[@class="section-head keep"]');
+$assert($heads->length === 1 && str_contains($heads->item(0)->textContent, '2004') && str_contains($heads->item(0)->textContent, 'Observação do ramal 2004'), 'título, cabeçalho e primeiro registro no mesmo bloco');
 $cards = $xpath->query('//div[@class="network-card keep"]');
 $assert($cards->length === 1 && str_contains($cards->item(0)->textContent, 'Rede #7') && str_contains($cards->item(0)->textContent, 'Observação da rede 7'), 'rede moderada agrupada');
 $sections['ramais'][0]['notes'] = str_repeat('Observação extensa fictícia. ', 120);
@@ -47,10 +47,10 @@ foreach ($widthCases as $section => $weights) {
         $html = $report->html($company, $instance, [$section => [['notes' => $note]]], $at);
         $doc->loadHTML('<?xml encoding="UTF-8">' . $html, LIBXML_NOERROR | LIBXML_NOWARNING);
         $xpath = new DOMXPath($doc);
-        $headers = $xpath->query('//table[@class="grid"]/thead/tr/th[starts-with(@class, "col")]');
-        $cells = $xpath->query('//table[@class="grid"]/tbody/tr/td[not(@colspan)] | //table[@class="record-grid"]/tbody/tr/td[not(@colspan)]');
+        $headers = $xpath->query('(//table[contains(@class, "grid")])[1]/thead/tr/th[starts-with(@class, "col")]');
+        $cells = $xpath->query('//table[contains(@class, "grid")]/tbody/tr/td[not(@colspan)] | //table[@class="record-grid"]/tbody/tr/td[not(@colspan)]');
         $assert($headers->length === count($weights) && $cells->length === count($weights), 'quantidade de colunas: ' . $section);
-        $sizing = $xpath->query('//table[@class="grid"]/thead/tr[1][@class="column-widths"]/th[not(@colspan)]');
+        $sizing = $xpath->query('(//table[contains(@class, "grid")])[1]/thead/tr[1][@class="column-widths"]/th[not(@colspan)]');
         $assert($sizing->length === count($weights), 'primeira linha define cada coluna antes dos colspans: ' . $section);
         foreach ($weights as $index => $weight) {
             $expected = 'width:' . number_format(100 * $weight / array_sum($weights), 6, '.', '') . '%';
@@ -58,7 +58,7 @@ foreach ($widthCases as $section => $weights) {
             $assert($headers->item($index)->getAttribute('style') === $expected, 'largura explícita do cabeçalho: ' . $section);
             $assert($cells->item($index)->getAttribute('style') === $expected, 'largura explícita da célula: ' . $section);
         }
-        $bars = $xpath->query('//table[@class="grid"]/thead/tr/th[contains(@class, "bar")]');
+        $bars = $xpath->query('(//table[contains(@class, "grid")])[1]/thead/tr/th[contains(@class, "bar")]');
         $assert($bars->length === 2, 'título e contador repetíveis: ' . $section);
         $sum = 0.0;
         foreach ($bars as $bar) $sum += (float) substr($bar->getAttribute('style'), 6);
@@ -117,7 +117,7 @@ foreach ($wideFields as $section => $fields) {
         $html = $report->html($company, $instance, [$section => [$row]], $at);
         $doc->loadHTML('<?xml encoding="UTF-8">' . $html, LIBXML_NOERROR | LIBXML_NOWARNING);
         $xpath = new DOMXPath($doc);
-        $cells = $xpath->query('//table[@class="grid"]/tbody/tr/td[not(@colspan)] | //table[@class="record-grid"]/tbody/tr/td[not(@colspan)]');
+        $cells = $xpath->query('//table[contains(@class, "grid")]/tbody/tr/td[not(@colspan)] | //table[@class="record-grid"]/tbody/tr/td[not(@colspan)]');
         $assert($cells->length === count($weights), 'colunas na verificação de texto longo: ' . $section);
         $checked = 0;
         foreach ($weights as $index => $weight) {
@@ -140,4 +140,4 @@ foreach ($wideFields as $section => $fields) {
         $assert(substr_count($all, $unit) >= 80 * min(count($fields), 4) - 80 * 3 * ($unit === 'AbC123' ? 1 : 0), 'nenhum caractere removido: ' . $section);
     }
 }
-echo "OK: seções vazias, registro com observação, redes, larguras explícitas, cabeçalho em linha única, tudo à esquerda, geometria renderizada e texto longo contido nas colunas. Inspeção visual pendente.\n";
+echo "OK: seções vazias, bloco fixo de título e primeiro registro, redes, larguras explícitas, cabeçalho em linha única, tudo à esquerda, geometria renderizada e texto longo contido nas colunas. Inspeção visual pendente.\n";

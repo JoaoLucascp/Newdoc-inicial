@@ -198,9 +198,22 @@ final class NewsicPdfReport
         return mb_strlen(strip_tags($html)) <= 1800 && substr_count($html, '<br>') <= 16;
     }
 
+    /**
+     * The first record travels with the title and column headers, so a page break
+     * cannot leave an orphan header at the bottom of a page.
+     */
     private function table(string $title, array $columns, array $rows): string
     {
         if ($rows === []) return $this->emptySection($title);
+        $total = count($rows);
+        $first = array_shift($rows);
+        $h = '<div class="section-head keep">' . $this->grid($columns, [$first], $title, $total, false) . '</div>';
+        if ($rows !== []) $h .= $this->grid($columns, $rows, $title, $total, true);
+        return $h;
+    }
+
+    private function grid(array $columns, array $rows, string $title, int $total, bool $withBar): string
+    {
         $n = count($columns);
         $totalWidth = array_sum(array_column($columns, 1));
         $widths = array_map(static fn (array $column): string => number_format(100 * $column[1] / $totalWidth, 6, '.', '') . '%', $columns);
@@ -211,9 +224,10 @@ final class NewsicPdfReport
         $sizing = '<tr class="column-widths" aria-hidden="true">';
         foreach ($widths as $width) $sizing .= '<th style="width:' . $width . '"></th>';
         $sizing .= '</tr>';
+        $h = '<table class="grid' . ($withBar ? '' : ' head-grid') . '">' . $colgroup . '<thead>' . $sizing;
         $headingWidth = number_format(100 * array_sum(array_slice(array_column($columns, 1), 0, $n - 2)) / $totalWidth, 6, '.', '') . '%';
         $countWidth = number_format(100 * array_sum(array_slice(array_column($columns, 1), -2)) / $totalWidth, 6, '.', '') . '%';
-        $h = '<table class="grid">' . $colgroup . '<thead>' . $sizing . '<tr><th class="bar" style="width:' . $headingWidth . '" colspan="' . ($n - 2) . '">' . $this->e(mb_strtoupper($title)) . '</th><th class="bar r" style="width:' . $countWidth . '" colspan="2"><span class="pill">' . count($rows) . ' registro(s)</span></th></tr><tr>';
+        $h .= '<tr><th class="bar" style="width:' . $headingWidth . '" colspan="' . ($n - 2) . '">' . $this->e(mb_strtoupper($title)) . '</th><th class="bar r" style="width:' . $countWidth . '" colspan="2"><span class="pill">' . $total . ' registro(s)</span></th></tr><tr>';
         foreach ($columns as $index => [$label, $width, $align]) {
             $h .= '<th class="col al-' . $align . '" style="width:' . $widths[$index] . '">' . $this->e(mb_strtoupper($label)) . '</th>';
         }
@@ -359,6 +373,8 @@ h1{font-size:20pt;color:#0b2545;margin:0 0 2px 0}
 .bt{color:#fff;font-size:10pt;font-weight:bold;padding:6px 8px}
 .bc{text-align:right;white-space:nowrap;padding:6px 8px}
 .grid{width:100%;margin:6px 0 14px 0;table-layout:fixed}
+.head-grid{margin-bottom:0}
+.section-head{page-break-inside:avoid}
 .column-widths th{height:0;line-height:0;font-size:0;padding:0;border:0}
 th.bar{background:#0b2545;color:#fff;font-size:10pt;text-align:left;padding:6px 8px}
 th.bar.r{text-align:right;white-space:nowrap}
