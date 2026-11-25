@@ -101,7 +101,7 @@ final class NewsicPdfReport
 
     private function extensions(array $rows): string
     {
-        $columns = [['Ramal', 9], ['Senha', 11], ['IP', 15], ['Usuário', 14], ['Departamento', 16], ['Gravação', 9], ['Permissões', 18], ['Status', 8]];
+        $columns = [['Ramal', 9, 'r'], ['Senha', 11, 'c'], ['IP', 15, 'l'], ['Usuário', 14, 'l'], ['Departamento', 16, 'l'], ['Gravação', 9, 'c'], ['Permissões', 18, 'l'], ['Status', 8, 'c']];
         $w = $this->limits($columns);
         $out = [];
         foreach ($rows as $r) {
@@ -123,7 +123,7 @@ final class NewsicPdfReport
 
     private function trunks(array $rows): string
     {
-        $columns = [['Número piloto', 17], ['Tipo', 12], ['Operadora', 15], ['Recebe', 10], ['Canais', 9], ['DDRs', 22], ['Status', 15]];
+        $columns = [['Número piloto', 17, 'l'], ['Tipo', 12, 'l'], ['Operadora', 15, 'l'], ['Recebe', 10, 'c'], ['Canais', 9, 'r'], ['DDRs', 22, 'l'], ['Status', 15, 'c']];
         $w = $this->limits($columns);
         $out = [];
         foreach ($rows as $r) {
@@ -138,7 +138,7 @@ final class NewsicPdfReport
 
     private function ura(array $rows): string
     {
-        $columns = [['Tipo', 18], ['Opção', 14], ['Horário', 18], ['Gravação', 20], ['Destino', 30]];
+        $columns = [['Tipo', 18, 'l'], ['Opção', 14, 'r'], ['Horário', 18, 'l'], ['Gravação', 20, 'l'], ['Destino', 30, 'l']];
         $w = $this->limits($columns);
         $out = [];
         foreach ($rows as $r) {
@@ -149,7 +149,7 @@ final class NewsicPdfReport
 
     private function routings(array $rows): string
     {
-        $columns = [['IPO', 10], ['Número', 14], ['Nome', 20], ['Encaminhamento', 20], ['Gravação', 16], ['Destino', 20]];
+        $columns = [['IPO', 10, 'l'], ['Número', 14, 'l'], ['Nome', 20, 'l'], ['Encaminhamento', 20, 'l'], ['Gravação', 16, 'l'], ['Destino', 20, 'l']];
         $w = $this->limits($columns);
         $out = [];
         foreach ($rows as $r) {
@@ -214,18 +214,18 @@ final class NewsicPdfReport
         $headingWidth = number_format(100 * array_sum(array_slice(array_column($columns, 1), 0, $n - 2)) / $totalWidth, 6, '.', '') . '%';
         $countWidth = number_format(100 * array_sum(array_slice(array_column($columns, 1), -2)) / $totalWidth, 6, '.', '') . '%';
         $h = '<table class="grid">' . $colgroup . '<thead>' . $sizing . '<tr><th class="bar" style="width:' . $headingWidth . '" colspan="' . ($n - 2) . '">' . $this->e(mb_strtoupper($title)) . '</th><th class="bar r" style="width:' . $countWidth . '" colspan="2"><span class="pill">' . count($rows) . ' registro(s)</span></th></tr><tr>';
-        foreach ($columns as $index => [$label, $width]) {
+        foreach ($columns as $index => [$label, $width, $align]) {
             $labelHtml = match ($label) {
                 'Departamento' => 'DEPARTA<br>MENTO',
                 'Gravação' => 'GRAVA<br>ÇÃO',
                 default => $this->e(mb_strtoupper($label)),
             };
-            $h .= '<th class="col" style="width:' . $widths[$index] . '">' . $labelHtml . '</th>';
+            $h .= '<th class="col al-' . $align . '" style="width:' . $widths[$index] . '">' . $labelHtml . '</th>';
         }
         $h .= '</tr></thead><tbody>';
         foreach ($rows as $index => $row) {
             $data = '<tr class="' . ($index % 2 ? 'alt' : '') . '">';
-            foreach ($row['cells'] as $cellIndex => $cell) $data .= '<td style="width:' . $widths[$cellIndex] . '">' . $cell . '</td>';
+            foreach ($row['cells'] as $cellIndex => $cell) $data .= '<td class="al-' . $columns[$cellIndex][2] . '" style="width:' . $widths[$cellIndex] . '">' . $cell . '</td>';
             $data .= '</tr>';
             $note = trim((string) ($row['note'] ?? ''));
             $noteHtml = $note === '' ? '' : '<tr class="note"><td colspan="' . $n . '"><b>Observações:</b> ' . $this->text($note) . '</td></tr>';
@@ -367,8 +367,10 @@ h1{font-size:20pt;color:#0b2545;margin:0 0 2px 0}
 .column-widths th{height:0;line-height:0;font-size:0;padding:0;border:0}
 th.bar{background:#0b2545;color:#fff;font-size:10pt;text-align:left;padding:6px 8px}
 th.bar.r{text-align:right;white-space:nowrap}
-th.col{background:#e8eef7;color:#0b2545;font-size:7pt;text-align:left;border:1px solid #cfd9e8;padding:4px 5px}
+th.col{background:#e8eef7;color:#0b2545;font-size:7pt;border:1px solid #cfd9e8;padding:4px 5px}
 td{border:1px solid #d6deea;padding:4px 5px;vertical-align:top;font-size:8pt}
+th.col,td{word-wrap:break-word;overflow-wrap:break-word;white-space:normal}
+.al-l{text-align:left}.al-c{text-align:center}.al-r{text-align:right}
 tr.alt td{background:#f6f9fd}
 tr.note td{background:#f1f5fb;color:#33445c;font-size:7.5pt}
 .keep,.record-unit{page-break-inside:avoid}

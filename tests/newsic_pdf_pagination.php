@@ -67,6 +67,11 @@ foreach ($widthCases as $section => $weights) {
             $assert($headers->item(4)->textContent === 'DEPARTAMENTO' && $headers->item(4)->getElementsByTagName('br')->length === 1, 'departamento completo com quebra controlada');
             $assert($headers->item(5)->textContent === 'GRAVAÇÃO' && $headers->item(5)->getElementsByTagName('br')->length === 1, 'gravação completa com quebra controlada');
         }
+        foreach ($weights as $index => $weight) {
+            preg_match('/al-[lcr]/', $headers->item($index)->getAttribute('class'), $headerAlign);
+            preg_match('/al-[lcr]/', $cells->item($index)->getAttribute('class'), $cellAlign);
+            $assert(($headerAlign[0] ?? '') !== '' && ($headerAlign[0] ?? '') === ($cellAlign[0] ?? ''), 'alinhamento do dado igual ao do cabeçalho: ' . $section . ' coluna ' . ($index + 1));
+        }
 
         $geometry = ['headers' => [], 'cells' => []];
         $options = new Dompdf\Options();
@@ -136,4 +141,4 @@ foreach ($wideFields as $section => $fields) {
         $assert(substr_count($all, $unit) >= 80 * min(count($fields), 4) - 80 * 3 * ($unit === 'AbC123' ? 1 : 0), 'nenhum caractere removido: ' . $section);
     }
 }
-echo "OK: estrutura de seções vazias, registro com observação, redes, continuação identificada, larguras explícitas, geometria renderizada e texto longo contido nas colunas. Inspeção visual pendente.\n";
+echo "OK: estrutura de seções vazias, registro com observação, redes, continuação identificada, larguras explícitas, alinhamento igual ao cabeçalho, geometria renderizada e texto longo contido nas colunas. Inspeção visual pendente.\n";
