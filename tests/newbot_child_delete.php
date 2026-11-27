@@ -19,7 +19,7 @@ use NewDoc\MigrationRunner;
 
 $assert = static function (bool $ok, string $label): void {
     if (!$ok) {
-        throw new RuntimeException('Falha exclus�o Newbot: ' . $label);
+        throw new RuntimeException('Falha exclusão Newbot: ' . $label);
     }
 };
 $at = '2026-01-01 00:00:00';
@@ -51,28 +51,28 @@ try {
     $_SESSION['user']['role'] = 'technician';
 
     $_POST = ['_csrf' => 'x', 'section' => 'invalido', 'record_id' => '1'];
-    $assert($controller->deleteChild(1)->status === 400, 'se��o inv�lida');
+    $assert($controller->deleteChild(1)->status === 400, 'seção inválida');
     $_POST = ['_csrf' => 'x', 'section' => 'channels', 'record_id' => 'abc'];
-    $assert($controller->deleteChild(1)->status === 400, 'record_id inv�lido');
+    $assert($controller->deleteChild(1)->status === 400, 'record_id inválido');
     $_POST = ['_csrf' => 'x', 'section' => 'channels', 'record_id' => '2'];
-    $assert($controller->deleteChild(1)->status === 404, 'isolamento por inst�ncia');
+    $assert($controller->deleteChild(1)->status === 404, 'isolamento por instância');
 
     $_POST = ['_csrf' => 'x', 'section' => 'channels', 'record_id' => '1'];
-    $assert($controller->deleteChild(1)->status === 303, 'exclus�o de canal');
+    $assert($controller->deleteChild(1)->status === 303, 'exclusão de canal');
     $assert((int) $pdo->query('SELECT COUNT(*) FROM newbot_channels')->fetchColumn() === 1, 'canal removido');
     $audit = $pdo->query("SELECT sensitive_field FROM audit_logs WHERE action = 'exclusao' AND table_name = 'newbot_channels' AND record_id = 1")->fetchColumn();
-    $assert($audit !== false && (int) $audit === 0, 'auditoria de canal n�o sens�vel');
+    $assert($audit !== false && (int) $audit === 0, 'auditoria de canal não sensível');
 
     $_POST = ['_csrf' => 'x', 'section' => 'supervisors', 'record_id' => '1'];
-    $assert($controller->deleteChild(1)->status === 303, 'exclus�o de supervisor');
+    $assert($controller->deleteChild(1)->status === 303, 'exclusão de supervisor');
     $assert((int) $pdo->query('SELECT COUNT(*) FROM newbot_supervisors')->fetchColumn() === 1, 'supervisor removido');
     $audit = $pdo->query("SELECT sensitive_field FROM audit_logs WHERE action = 'exclusao' AND table_name = 'newbot_supervisors' AND record_id = 1")->fetchColumn();
-    $assert($audit !== false && (int) $audit === 1, 'auditoria de supervisor sens�vel');
+    $assert($audit !== false && (int) $audit === 1, 'auditoria de supervisor sensível');
 
     $_POST = ['_csrf' => 'x', 'section' => 'channels', 'record_id' => '1'];
-    $assert($controller->deleteChild(1)->status === 404, 'segunda exclus�o recusada');
+    $assert($controller->deleteChild(1)->status === 404, 'segunda exclusão recusada');
 
-    echo "OK: exclus�o de registros do Newbot com confirma��o, autoriza��o, isolamento e auditoria.\n";
+    echo "OK: exclusão de registros do Newbot com confirmação, autorização, isolamento e auditoria.\n";
 } finally {
     if ($previousKey === false) {
         putenv('CREDENTIALS_KEY');
