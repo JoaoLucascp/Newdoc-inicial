@@ -272,6 +272,7 @@ try {
         'newsic_export_http.php',
         'newsic_pdf_pagination.php',
         'newbot_migration_004.php',
+        'newbot_child_delete.php',
     ] as $suite) {
         $process = proc_open(
             [PHP_BINARY, __DIR__ . DIRECTORY_SEPARATOR . $suite],

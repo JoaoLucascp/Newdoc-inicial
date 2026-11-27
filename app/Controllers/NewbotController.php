@@ -462,6 +462,71 @@ final class NewbotController
         return Response::redirect('/newbot/' . $instanceId);
     }
 
+    public function deleteChild(int $instanceId): Response
+    {
+        if (!Auth::canManage()) {
+            return View::render('errors/403', [], 403);
+        }
+        $instance = $this->findInstance($instanceId);
+        if ($instance === null) {
+            return View::render('errors/404', [], 404);
+        }
+        $typeInput = $_POST['section'] ?? '';
+        $type = is_string($typeInput) ? $typeInput : '';
+        if (!isset(self::CHILD_SECTIONS[$type])) {
+            return View::render('errors/400', [], 400);
+        }
+        $recordInput = $_POST['record_id'] ?? '';
+        if (!is_string($recordInput)) {
+            return View::render('errors/400', [], 400);
+        }
+        $recordId = filter_var($recordInput, FILTER_VALIDATE_INT);
+        if ($recordId === false || $recordId < 1) {
+            return View::render('errors/400', [], 400);
+        }
+        $definition = self::CHILD_SECTIONS[$type];
+        $statement = $this->pdo->prepare(
+            'SELECT * FROM ' . $definition['table'] . ' WHERE id = :id AND newbot_instance_id = :instance_id'
+        );
+        $statement->execute(['id' => $recordId, 'instance_id' => $instanceId]);
+        $existing = $statement->fetch();
+        if (!$existing) {
+            return View::render('errors/404', [], 404);
+        }
+        $companyId = (int) $instance['company_id'];
+        $this->pdo->beginTransaction();
+        try {
+            $delete = $this->pdo->prepare(
+                'DELETE FROM ' . $definition['table'] . ' WHERE id = :id AND newbot_instance_id = :instance_id'
+            );
+            $delete->execute(['id' => $recordId, 'instance_id' => $instanceId]);
+            $sensitive = false;
+            foreach ($definition['fields'] as $field) {
+                if ($field['type'] === 'secret') {
+                    $sensitive = true;
+                    break;
+                }
+            }
+            Audit::record(
+                $this->pdo,
+                'exclusao',
+                $definition['table'],
+                $recordId,
+                'record',
+                $companyId,
+                $sensitive
+            );
+            $this->pdo->commit();
+        } catch (\Throwable $exception) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            throw $exception;
+        }
+        Flash::success($definition['label'] . ' excluído(s) com sucesso.');
+
+        return Response::redirect('/newbot/' . $instanceId);
+    }
     private function renderInstanceForm(array $company, array $instance, array $errors, string $mode, int $status = 200): Response
     {
         return View::render('newbot/form', [
