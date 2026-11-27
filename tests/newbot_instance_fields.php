@@ -75,7 +75,7 @@ try {
     $assert(str_contains($html, 'cod-a'), 'ID exibido no detalhe');
     $assert(str_contains($html, 'a.invalid/x'), 'link exibido no detalhe');
     $assert(!str_contains($html, 'x"y'), 'aspas do link escapadas');
-    $assert(str_contains($html, '/newbot/1/dados/excluir') && str_contains($html, 'Excluir registro'), 'botão Excluir presente');
+    $assert(str_contains($html, '/newbot/1/dados/excluir') && str_contains($html, 'Excluir registro') && str_contains($html, 'button-danger'), 'botão Excluir presente e em estilo de perigo');
     $assert(str_contains($html, 'sup-sem-nome') && !str_contains($html, 'Registro #'), 'rótulo do supervisor sem nome');
 
     $_SESSION['user']['role'] = 'viewer';

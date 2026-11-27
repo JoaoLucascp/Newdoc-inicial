@@ -523,7 +523,7 @@ final class NewbotController
             }
             throw $exception;
         }
-        Flash::success($definition['label'] . ' exclu�do(s) com sucesso.');
+        Flash::success($definition['label'] . ' excluído(s) com sucesso.');
 
         return Response::redirect('/newbot/' . $instanceId);
     }

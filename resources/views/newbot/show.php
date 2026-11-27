@@ -122,7 +122,7 @@ $statusLabels = ['ativo' => 'Ativo', 'inativo' => 'Inativo', 'manutencao' => 'Ma
                         <input type="hidden" name="section" value="<?= h($section['type']) ?>">
                         <input type="hidden" name="record_id" value="<?= h($recordId) ?>">
                         <div class="form-actions form-wide">
-                            <button class="button button-secondary" type="submit">Excluir registro</button>
+                            <button class="button button-danger" type="submit">Excluir registro</button>
                         </div>
                     </form>
                 </details>
