@@ -39,6 +39,14 @@ $statusLabels = ['ativo' => 'Ativo', 'inativo' => 'Inativo', 'manutencao' => 'Ma
     </div>
     <dl class="detail-list">
         <div>
+            <dt>ID da instância</dt>
+            <dd><?= $instance['instance_code'] ? h($instance['instance_code']) : 'Não informado' ?></dd>
+        </div>
+        <div>
+            <dt>Link de acesso</dt>
+            <dd><?php if ($instance['access_link'] && preg_match('#^https?://#i', $instance['access_link']) === 1): ?><a href="<?= h($instance['access_link']) ?>" target="_blank" rel="noopener noreferrer"><?= h($instance['access_link']) ?></a><?php else: ?>Não informado<?php endif; ?></dd>
+        </div>
+        <div>
             <dt>Documento de origem</dt>
             <dd><?= $instance['source_document_id'] ? 'Documento #' . h($instance['source_document_id']) : 'Não vinculado' ?></dd>
         </div>
@@ -63,7 +71,7 @@ $statusLabels = ['ativo' => 'Ativo', 'inativo' => 'Inativo', 'manutencao' => 'Ma
                 <p><?= h($section['record_count']) ?> registro(s)</p>
             </div>
             <?php if ($canManage): ?>
-                <span class="section-number"><?= h(str_pad((string) ($sectionIndex + 2), 2, '0', STR_PAD_LEFT)) ?></span>
+                <span class="section-number"><?= h(str_pad((string) $section['record_count'], 2, '0', STR_PAD_LEFT)) ?></span>
             <?php endif; ?>
         </div>
 
@@ -79,6 +87,9 @@ $statusLabels = ['ativo' => 'Ativo', 'inativo' => 'Inativo', 'manutencao' => 'Ma
             <?php
                 $recordId = (int) $record['values']['id'];
                 $summary = $record['values'][$section['summary_field']] ?? '';
+                if (($summary === null || $summary === '') && $section['type'] === 'supervisors') {
+                    $summary = $record['values']['login'] ?: ($record['values']['email'] ?? '');
+                }
                 $summary = $summary === null || $summary === '' ? 'Registro #' . $recordId : (string) $summary;
                 $matches = ($formState['section'] ?? null) === $section['type'] && (int) ($formState['record_id'] ?? 0) === $recordId;
                 $recordValues = $matches ? array_replace($record['values'], $formState['values'] ?? []) : $record['values'];
@@ -104,6 +115,14 @@ $statusLabels = ['ativo' => 'Ativo', 'inativo' => 'Inativo', 'manutencao' => 'Ma
                         ?>
                         <div class="form-actions form-wide">
                             <button class="button button-secondary" type="submit">Salvar registro</button>
+                        </div>
+                    </form>
+                    <form action="/newbot/<?= h($instance['id']) ?>/dados/excluir" method="post" class="newsic-record-form" onsubmit="return confirm('Excluir este registro permanentemente? Esta ação não pode ser desfeita.');">
+                        <input type="hidden" name="_csrf" value="<?= h(Csrf::token()) ?>">
+                        <input type="hidden" name="section" value="<?= h($section['type']) ?>">
+                        <input type="hidden" name="record_id" value="<?= h($recordId) ?>">
+                        <div class="form-actions form-wide">
+                            <button class="button button-secondary" type="submit">Excluir registro</button>
                         </div>
                     </form>
                 </details>

@@ -211,9 +211,9 @@ final class NewbotController
         try {
             $statement = $this->pdo->prepare(
                 'INSERT INTO newbot_instances
-                    (company_id, instance_name, status, notes, source_document_id, created_at, updated_at, created_by, updated_by)
+                    (company_id, instance_name, instance_code, access_link, status, notes, source_document_id, created_at, updated_at, created_by, updated_by)
                  VALUES
-                    (:company_id, :instance_name, :status, :notes, :source_document_id, :created_at, :updated_at, :created_by, :updated_by)'
+                    (:company_id, :instance_name, :instance_code, :access_link, :status, :notes, :source_document_id, :created_at, :updated_at, :created_by, :updated_by)'
             );
             $statement->execute($data + [
                 'company_id' => $companyId,
@@ -322,7 +322,7 @@ final class NewbotController
         $this->pdo->beginTransaction();
         try {
             $statement = $this->pdo->prepare(
-                'UPDATE newbot_instances SET instance_name = :instance_name, status = :status,
+                'UPDATE newbot_instances SET instance_name = :instance_name, instance_code = :instance_code, access_link = :access_link, status = :status,
                  notes = :notes, source_document_id = :source_document_id,
                  updated_at = :updated_at, updated_by = :updated_by WHERE id = :id'
             );
@@ -523,7 +523,7 @@ final class NewbotController
             }
             throw $exception;
         }
-        Flash::success($definition['label'] . ' excluÌdo(s) com sucesso.');
+        Flash::success($definition['label'] . ' excluÔøΩdo(s) com sucesso.');
 
         return Response::redirect('/newbot/' . $instanceId);
     }
@@ -543,7 +543,7 @@ final class NewbotController
     {
         $errors = [];
         $data = [];
-        foreach (['instance_name' => 160, 'notes' => 2000] as $field => $max) {
+        foreach (['instance_name' => 160, 'instance_code' => 160, 'access_link' => 500, 'notes' => 2000] as $field => $max) {
             $raw = $_POST[$field] ?? '';
             if (!is_string($raw)) {
                 $errors[$field] = 'Informe um valor v√°lido.';
@@ -554,6 +554,9 @@ final class NewbotController
                 $errors[$field] = 'O campo excede o limite permitido.';
             }
             $data[$field] = $value === '' ? null : $value;
+        }
+        if ($data['access_link'] !== null && !isset($errors['access_link']) && preg_match('#^https?://[^\s]+$#i', $data['access_link']) !== 1) {
+            $errors['access_link'] = 'Informe um link iniciado por http:// ou https://.';
         }
         $statusInput = $_POST['status'] ?? 'ativo';
         $status = is_string($statusInput) ? $statusInput : '';
