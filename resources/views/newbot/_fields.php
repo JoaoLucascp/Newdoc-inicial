@@ -14,6 +14,7 @@
                 $credentialTarget = match ($section['type']) {
                     'administrators' => 'newbot_administrator',
                     'integrations' => 'newbot_integration',
+                    'supervisors' => 'newbot_supervisor',
                     default => null,
                 };
                 if ($credentialTarget !== null) {
@@ -33,7 +34,7 @@
             <option value="">Não informado</option><?php foreach ($field['options'] as $option): ?><option value="<?= h($option) ?>" <?= (string) $value === (string) $option ? 'selected' : '' ?>><?= h(ucfirst(str_replace('_', ' ', $option))) ?></option><?php endforeach; ?>
         </select></label>
     <?php else: ?>
-        <?php $inputType = in_array($field['type'], ['date', 'email', 'number'], true) ? $field['type'] : 'text'; ?>
+        <?php $inputType = in_array($field['type'], ['date', 'email', 'number', 'time'], true) ? $field['type'] : 'text'; ?>
         <label class="form-field" for="<?= h($id) ?>"><span><?= h($field['label']) ?><?= $required ? ' *' : '' ?></span>
             <input class="form-input" id="<?= h($id) ?>" name="<?= h($name) ?>" type="<?= h($inputType) ?>" value="<?= h($value) ?>"
                    <?= isset($field['max']) ? 'maxlength="' . h($field['max']) . '"' : '' ?> <?= isset($field['min']) ? 'min="' . h($field['min']) . '"' : '' ?> <?= $required ? 'required' : '' ?>>

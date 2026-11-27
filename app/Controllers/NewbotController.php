@@ -28,6 +28,7 @@ final class NewbotController
                 'external_id' => ['label' => 'ID externo', 'type' => 'text', 'max' => 160],
                 'channel_name' => ['label' => 'Nome do canal', 'type' => 'text', 'max' => 160],
                 'activation_date' => ['label' => 'Data de ativação', 'type' => 'date'],
+                'activation_time' => ['label' => 'Hora de ativação', 'type' => 'time'],
                 'plan' => ['label' => 'Plano', 'type' => 'text', 'max' => 160],
                 'quantity' => ['label' => 'Quantidade', 'type' => 'number', 'min' => 0],
                 'link' => ['label' => 'Link de acesso', 'type' => 'text', 'max' => 500],
@@ -41,6 +42,8 @@ final class NewbotController
             'summary_field' => 'login',
             'fields' => [
                 'login' => ['label' => 'Login', 'type' => 'text', 'max' => 160],
+                'name' => ['label' => 'Nome', 'type' => 'text', 'max' => 160],
+                'email' => ['label' => 'E-mail', 'type' => 'email', 'max' => 254],
                 'password' => ['label' => 'Senha', 'type' => 'secret', 'column' => 'password_encrypted'],
                 'supervisor_login' => ['label' => 'Login do supervisor', 'type' => 'text', 'max' => 160],
                 'supervisor_email' => ['label' => 'E-mail do supervisor', 'type' => 'email', 'max' => 254],
@@ -81,6 +84,7 @@ final class NewbotController
             'fields' => [
                 'name' => ['label' => 'Nome da integração', 'type' => 'text', 'required' => true, 'max' => 160],
                 'username' => ['label' => 'Usuário ou login', 'type' => 'text', 'max' => 160],
+                'email' => ['label' => 'E-mail', 'type' => 'email', 'max' => 254],
                 'password' => ['label' => 'Senha', 'type' => 'secret', 'column' => 'password_encrypted'],
                 'link' => ['label' => 'Link', 'type' => 'text', 'max' => 500],
                 'activation_date' => ['label' => 'Data de ativação', 'type' => 'date'],
@@ -98,6 +102,18 @@ final class NewbotController
                 'email' => ['label' => 'E-mail', 'type' => 'email', 'max' => 254],
                 'department' => ['label' => 'Setor', 'type' => 'text', 'max' => 160],
                 'attendant_type' => ['label' => 'Tipo', 'type' => 'text', 'max' => 120],
+                'notes' => ['label' => 'Observações', 'type' => 'textarea', 'max' => 2000],
+            ],
+        ],
+        'supervisors' => [
+            'table' => 'newbot_supervisors',
+            'label' => 'Supervisores',
+            'summary_field' => 'name',
+            'fields' => [
+                'name' => ['label' => 'Nome', 'type' => 'text', 'max' => 160],
+                'login' => ['label' => 'Login', 'type' => 'text', 'max' => 160],
+                'email' => ['label' => 'E-mail', 'type' => 'email', 'max' => 254],
+                'password' => ['label' => 'Senha', 'type' => 'secret', 'column' => 'password_encrypted'],
                 'notes' => ['label' => 'Observações', 'type' => 'textarea', 'max' => 2000],
             ],
         ],
@@ -556,6 +572,12 @@ final class NewbotController
                 $date = DateTimeImmutable::createFromFormat('!Y-m-d', $value);
                 if ($value !== '' && ($date === false || $date->format('Y-m-d') !== $value)) {
                     $errors[$name] = 'Informe uma data válida.';
+                }
+                $data[$column] = $value === '' ? null : $value;
+            } elseif ($type === 'time') {
+                $time = DateTimeImmutable::createFromFormat('H:i', $value);
+                if ($value !== '' && ($time === false || $time->format('H:i') !== $value)) {
+                    $errors[$name] = 'Informe uma hora válida no formato HH:MM.';
                 }
                 $data[$column] = $value === '' ? null : $value;
             } else {
