@@ -344,3 +344,6 @@ a.table-primary-link:hover { color: var(--blue); }
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }
+
+.newsic-record-form .button-danger { border-color: #f1b8b4; color: #b42318; background: #fff; }
+.newsic-record-form .button-danger:hover { border-color: #b42318; color: #fff; background: #b42318; }

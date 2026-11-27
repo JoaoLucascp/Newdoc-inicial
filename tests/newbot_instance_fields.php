@@ -78,6 +78,7 @@ try {
     $assert(str_contains($html, '/newbot/1/dados/excluir') && str_contains($html, 'Excluir registro') && str_contains($html, 'button-danger'), 'botão Excluir presente e em estilo de perigo');
     $assert(str_contains($html, 'sup-sem-nome') && !str_contains($html, 'Registro #'), 'rótulo do supervisor sem nome');
 
+    $assert(str_contains((string) file_get_contents(dirname(__DIR__) . '/public/assets/app.css'), '.newsic-record-form .button-danger'), 'estilo de perigo definido no CSS global');
     $_SESSION['user']['role'] = 'viewer';
     $assert(!str_contains($controller->show(1)->body, '/dados/excluir'), 'viewer não vê o botão Excluir');
     $_SESSION['user']['role'] = 'technician';
