@@ -46,3 +46,11 @@
 .nb-page .nbi-dialog-body textarea.form-input{resize:vertical;min-height:84px}
 .nb-page .nbi-dialog-foot{display:flex;justify-content:flex-end;gap:12px;padding:14px 24px;border-top:1px solid var(--nb-line)}
 @media(max-width:980px){.nb-page .nbi-row-2{grid-template-columns:minmax(0,1fr)}.nb-page .nbi-dl{grid-template-columns:minmax(0,1fr)}.nb-page .nbi-dialog-body{grid-template-columns:minmax(0,1fr)}}
+.nb-page .nbi-title-icon{display:inline-flex;align-items:center;justify-content:center;flex:0 0 34px;width:34px;height:34px;margin-right:10px;border-radius:9px;background:var(--nb-navy);color:#fff}
+.nb-page .nbi-title-icon svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.nb-page .nbi-card-head h2{display:flex;align-items:center}
+.nb-page .nbi-head-main{display:flex;align-items:center;gap:12px}
+.nb-page .nbi-head-main .nbi-title-icon{margin-right:0}
+.nb-page .nbi-status{padding:0;border-radius:0;background:none;color:var(--nb-navy);font-weight:500}
+.nb-page .nbi-open-link{display:inline-flex;align-items:center;gap:6px}
+.nb-page .nbi-open-link svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}

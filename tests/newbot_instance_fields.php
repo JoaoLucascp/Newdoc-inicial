@@ -83,6 +83,7 @@ try {
     $_POST = $post(['instance_name' => 'A', 'status' => 'ativo', 'instance_code' => 'cod-a', 'access_link' => 'newbot.invalid']);
     $bad = $controller->update(1);
     $assert($bad->status === 422 && str_contains($bad->body, 'Informe um link iniciado') && str_contains($bad->body, 'nbi-instance-form'), 'erro de link permanece na página única');
+    $assert(str_contains($html, 'nbi-title-icon') && !str_contains($html, '<span class="nb-tag">Newbot</span>'), 'ícones nos títulos e sem etiqueta Newbot');
     $_SESSION['user']['role'] = 'viewer';
     $assert(!str_contains($controller->show(1)->body, '/dados/excluir'), 'viewer não vê o botão Excluir');
     $_SESSION['user']['role'] = 'technician';
