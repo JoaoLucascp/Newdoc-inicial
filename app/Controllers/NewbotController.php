@@ -286,24 +286,6 @@ final class NewbotController
         ], $statusCode);
     }
 
-    public function edit(int $id): Response
-    {
-        if (!Auth::canManage()) {
-            return View::render('errors/403', [], 403);
-        }
-        $instance = $this->findInstanceWithCompany($id);
-        if ($instance === null) {
-            return View::render('errors/404', [], 404);
-        }
-
-        return $this->renderInstanceForm(
-            ['id' => $instance['company_id'], 'name' => $instance['company_name']],
-            $instance,
-            [],
-            'edit'
-        );
-    }
-
     public function update(int $id): Response
     {
         if (!Auth::canManage()) {

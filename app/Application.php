@@ -130,9 +130,6 @@ final class Application
         if (preg_match('#^/empresas/([1-9][0-9]*)/newbot/nova$#', $path, $matches) === 1 && $method === 'GET') {
             return (new NewbotController($this->pdo))->create((int) $matches[1]);
         }
-        if (preg_match('#^/newbot/([1-9][0-9]*)/editar$#', $path, $matches) === 1 && $method === 'GET') {
-            return (new NewbotController($this->pdo))->edit((int) $matches[1]);
-        }
         if (preg_match('#^/newbot/([1-9][0-9]*)/dados$#', $path, $matches) === 1 && $method === 'POST') {
             return (new NewbotController($this->pdo))->saveChild((int) $matches[1]);
         }
