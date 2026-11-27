@@ -136,6 +136,9 @@ final class Application
         if (preg_match('#^/newbot/([1-9][0-9]*)/dados$#', $path, $matches) === 1 && $method === 'POST') {
             return (new NewbotController($this->pdo))->saveChild((int) $matches[1]);
         }
+        if (preg_match('#^/newbot/([1-9][0-9]*)/dados/excluir$#', $path, $matches) === 1 && $method === 'POST') {
+            return (new NewbotController($this->pdo))->deleteChild((int) $matches[1]);
+        }
         if (preg_match('#^/newbot/([1-9][0-9]*)$#', $path, $matches) === 1) {
             $controller = new NewbotController($this->pdo);
             if ($method === 'GET') {
