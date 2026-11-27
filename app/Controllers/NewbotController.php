@@ -279,7 +279,7 @@ final class NewbotController
         return View::render('newbot/show', [
             'instance' => $instance,
             'sections' => $sections,
-            'auditEvents' => $auditEvents,
+            'auditEvents' => $auditEvents, 'documents' => $this->newbotDocuments((int) $instance['company_id'], (int) ($instance['source_document_id'] ?? 0)),
             'errors' => $errors,
             'formState' => $formState,
             'canManage' => $canManage,
@@ -316,7 +316,7 @@ final class NewbotController
         $company = ['id' => $existing['company_id'], 'name' => $existing['company_name']];
         [$data, $errors] = $this->validatedInstanceInput((int) $existing['company_id']);
         if ($errors !== []) {
-            return $this->renderInstanceForm($company, $data + ['id' => $id], $errors, 'edit', 422);
+            return $this->show($id, array_values($errors), 422, false, ['section' => 'instance', 'values' => $data]);
         }
         $now = date('Y-m-d H:i:s');
         $this->pdo->beginTransaction();

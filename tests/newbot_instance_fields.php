@@ -75,10 +75,14 @@ try {
     $assert(str_contains($html, 'cod-a'), 'ID exibido no detalhe');
     $assert(str_contains($html, 'a.invalid/x'), 'link exibido no detalhe');
     $assert(!str_contains($html, 'x"y'), 'aspas do link escapadas');
-    $assert(str_contains($html, '/newbot/1/dados/excluir') && str_contains($html, 'Excluir registro') && str_contains($html, 'button-danger'), 'botão Excluir presente e em estilo de perigo');
+    $assert(str_contains($html, '/newbot/1/dados/excluir') && str_contains($html, 'Excluir registro') && str_contains($html, 'nbi-icon-danger'), 'botão Excluir presente e em estilo de perigo');
     $assert(str_contains($html, 'sup-sem-nome') && !str_contains($html, 'Registro #'), 'rótulo do supervisor sem nome');
 
     $assert(str_contains((string) file_get_contents(dirname(__DIR__) . '/public/assets/app.css'), '.newsic-record-form .button-danger'), 'estilo de perigo definido no CSS global');
+    $assert(!str_contains($html, 'onsubmit=') && str_contains($html, 'data-confirm='), 'confirmação sem script inline (CSP)');
+    $_POST = $post(['instance_name' => 'A', 'status' => 'ativo', 'instance_code' => 'cod-a', 'access_link' => 'newbot.invalid']);
+    $bad = $controller->update(1);
+    $assert($bad->status === 422 && str_contains($bad->body, 'Informe um link iniciado') && str_contains($bad->body, 'nbi-instance-form'), 'erro de link permanece na página única');
     $_SESSION['user']['role'] = 'viewer';
     $assert(!str_contains($controller->show(1)->body, '/dados/excluir'), 'viewer não vê o botão Excluir');
     $_SESSION['user']['role'] = 'technician';
