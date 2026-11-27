@@ -2,21 +2,120 @@
 
 use NewDoc\Csrf;
 
-$title = 'Newbot · ' . ($instance['instance_name'] ?: 'Instância #' . $instance['id']);
+$title = 'Newbot';
 $active = 'newbot';
 $statusLabels = ['ativo' => 'Ativo', 'inativo' => 'Inativo', 'manutencao' => 'Manutenção', 'pendente' => 'Pendente'];
+$instanceStatuses = ['ativo' => 'Ativo', 'inativo' => 'Inativo', 'manutencao' => 'Manutenção'];
+$instanceId = (int) $instance['id'];
+$companyId = (int) $instance['company_id'];
+$instanceValues = $instance;
+if (($formState['section'] ?? null) === 'instance') {
+    $instanceValues = array_replace($instance, $formState['values'] ?? []);
+}
+$documents = $documents ?? [];
+$byType = [];
+foreach ($sections as $item) {
+    $byType[$item['type']] = $item;
+}
+$layout = [['channels'], ['administrators', 'supervisors'], ['responsibles', 'integrations'], ['attendants'], ['authentications']];
+$tables = [
+    'channels' => ['title' => 'Canais de Atendimento', 'singular' => 'canal', 'add' => 'Adicionar Canal', 'columns' => [
+        ['name' => 'channel_name', 'label' => 'Canal'],
+        ['name' => 'plan', 'label' => 'Plano'],
+        ['name' => 'quantity', 'label' => 'Quantidade'],
+        ['name' => 'status', 'label' => 'Status', 'kind' => 'status'],
+        ['name' => 'activation_date', 'label' => 'Ativação', 'kind' => 'activation'],
+    ]],
+    'administrators' => ['title' => 'Administradores', 'singular' => 'administrador', 'add' => 'Adicionar', 'columns' => [
+        ['name' => 'name', 'label' => 'Nome'],
+        ['name' => 'login', 'label' => 'Login'],
+        ['name' => 'email', 'label' => 'E-mail'],
+        ['name' => 'password', 'label' => 'Senha', 'kind' => 'secret'],
+    ]],
+    'supervisors' => ['title' => 'Supervisores', 'singular' => 'supervisor', 'add' => 'Adicionar', 'columns' => [
+        ['name' => 'name', 'label' => 'Nome'],
+        ['name' => 'login', 'label' => 'Login'],
+        ['name' => 'email', 'label' => 'E-mail'],
+        ['name' => 'password', 'label' => 'Senha', 'kind' => 'secret'],
+    ]],
+    'responsibles' => ['title' => 'Responsáveis', 'singular' => 'responsável', 'add' => 'Adicionar', 'columns' => [
+        ['name' => 'name', 'label' => 'Nome'],
+        ['name' => 'contact', 'label' => 'Contato'],
+        ['name' => 'email', 'label' => 'E-mail'],
+        ['name' => 'department', 'label' => 'Setor'],
+    ]],
+    'integrations' => ['title' => 'Integrações', 'singular' => 'integração', 'add' => 'Adicionar', 'columns' => [
+        ['name' => 'name', 'label' => 'Nome'],
+        ['name' => 'username', 'label' => 'Usuário'],
+        ['name' => 'password', 'label' => 'Senha', 'kind' => 'secret'],
+        ['name' => 'email', 'label' => 'E-mail'],
+        ['name' => 'status', 'label' => 'Status', 'kind' => 'status'],
+    ]],
+    'attendants' => ['title' => 'Atendentes', 'singular' => 'atendente', 'add' => 'Adicionar', 'columns' => [
+        ['name' => 'name', 'label' => 'Nome'],
+        ['name' => 'username', 'label' => 'Usuário'],
+        ['name' => 'email', 'label' => 'E-mail'],
+        ['name' => 'department', 'label' => 'Departamento'],
+        ['name' => 'attendant_type', 'label' => 'Tipo'],
+        ['name' => 'notes', 'label' => 'Observações'],
+    ]],
+    'authentications' => ['title' => 'Autenticações', 'singular' => 'autenticação', 'add' => 'Adicionar', 'columns' => [
+        ['name' => 'platform', 'label' => 'Plataforma', 'kind' => 'platform'],
+        ['name' => 'status', 'label' => 'Status', 'kind' => 'status'],
+        ['name' => 'notes', 'label' => 'Observações'],
+    ]],
+];
+$svg = static fn (string $path): string => '<svg viewBox="0 0 24 24" aria-hidden="true">' . $path . '</svg>';
+$iconPlus = $svg('<path d="M12 5v14M5 12h14"/>');
+$iconEdit = $svg('<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>');
+$iconTrash = $svg('<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/>');
+$iconSave = $svg('<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/>');
+$cell = static function (array $record, array $column) use ($statusLabels): string {
+    $values = $record['values'];
+    $kind = $column['kind'] ?? 'text';
+    $name = $column['name'];
+    if ($kind === 'secret') {
+        return !empty($record['secret_fields'][$name]) ? '••••••••' : '—';
+    }
+    if ($kind === 'status') {
+        $status = (string) ($values['status'] ?? '');
+        if ($status === '') {
+            return '—';
+        }
+
+        return '<span class="nbi-status nbi-status-' . h($status) . '"><i></i>' . h($statusLabels[$status] ?? $status) . '</span>';
+    }
+    if ($kind === 'activation') {
+        $date = (string) ($values['activation_date'] ?? '');
+        if ($date === '') {
+            return '—';
+        }
+        $time = (string) ($values['activation_time'] ?? '');
+        $stamp = strtotime($date);
+        $text = $stamp === false ? $date : date('d/m/Y', $stamp);
+
+        return h($time !== '' ? $text . ' ' . substr($time, 0, 5) : $text);
+    }
+    $value = $values[$name] ?? '';
+    if ($value === null || $value === '') {
+        return '—';
+    }
+    if ($kind === 'platform') {
+        return h(ucfirst((string) $value));
+    }
+
+    return h((string) $value);
+};
+$accessLink = (string) ($instanceValues['access_link'] ?? '');
+$accessLinkValid = $accessLink !== '' && preg_match('#^https?://#i', $accessLink) === 1;
 ?>
-<div class="page-heading">
-    <div>
-        <a class="back-link" href="/empresas/<?= h($instance['company_id']) ?>/newbot">← Voltar às instâncias</a>
-        <span class="eyebrow">NEWBOT · <?= h($instance['company_name']) ?> · ID <?= h($instance['id']) ?></span>
-        <h1><?= h($instance['instance_name'] ?: 'Instância #' . $instance['id']) ?></h1>
-        <p class="page-subtitle"><?= h($instance['company_name']) ?></p>
-    </div>
-    <?php if ($canManage): ?>
-        <a class="button button-secondary" href="/newbot/<?= h($instance['id']) ?>/editar">Editar instância</a>
-    <?php endif; ?>
-</div>
+<link rel="stylesheet" href="/assets/newbot-form.css?v=2">
+<link rel="stylesheet" href="/assets/newbot-instance.css?v=1">
+<script src="/assets/newbot-form.js?v=2" defer></script>
+<script src="/assets/newbot-instance.js?v=1" defer></script>
+<div class="nb-page">
+<nav class="nb-crumbs" aria-label="Trilha de navegação"><a href="/">Início</a><span aria-hidden="true">›</span><a href="/newbot">Newbot</a><span aria-hidden="true">›</span><a href="/empresas/<?= $companyId ?>/newbot">Instâncias</a><span aria-hidden="true">›</span><span aria-current="page"><?= h($instance['instance_name'] ?: 'Instância #' . $instanceId) ?></span></nav>
+<header class="nb-head"><div><h1><?= h($instance['company_name']) ?></h1><p>Cadastre e gerencie a instância do Newbot.</p></div></header>
 
 <?php if ($errors !== []): ?>
     <div class="alert alert-error" role="alert">
@@ -29,128 +128,91 @@ $statusLabels = ['ativo' => 'Ativo', 'inativo' => 'Inativo', 'manutencao' => 'Ma
     </div>
 <?php endif; ?>
 
-<section class="panel">
-    <div class="panel-heading">
-        <div>
-            <h2>Dados da instância</h2>
-            <p>Configuração geral do atendimento</p>
-        </div>
-        <span class="status-badge status-<?= h($instance['status']) ?>"><span></span><?= h($statusLabels[$instance['status']] ?? $instance['status']) ?></span>
-    </div>
-    <dl class="detail-list">
-        <div>
-            <dt>ID da instância</dt>
-            <dd><?= $instance['instance_code'] ? h($instance['instance_code']) : 'Não informado' ?></dd>
-        </div>
-        <div>
-            <dt>Link de acesso</dt>
-            <dd><?php if ($instance['access_link'] && preg_match('#^https?://#i', $instance['access_link']) === 1): ?><a href="<?= h($instance['access_link']) ?>" target="_blank" rel="noopener noreferrer"><?= h($instance['access_link']) ?></a><?php else: ?>Não informado<?php endif; ?></dd>
-        </div>
-        <div>
-            <dt>Documento de origem</dt>
-            <dd><?= $instance['source_document_id'] ? 'Documento #' . h($instance['source_document_id']) : 'Não vinculado' ?></dd>
-        </div>
-        <?php if ($instance['notes']): ?>
-            <div class="detail-wide">
-                <dt>Observações</dt>
-                <dd><?= nl2br(h($instance['notes'])) ?></dd>
-            </div>
-        <?php endif; ?>
-    </dl>
-    <div class="detail-meta">
-        <span>Criada em <?= h(date('d/m/Y H:i', strtotime($instance['created_at']))) ?></span>
-        <span>Atualizada em <?= h(date('d/m/Y H:i', strtotime($instance['updated_at']))) ?></span>
-    </div>
+<?php if ($canManage): ?>
+<form id="nbi-instance-form" action="/newbot/<?= $instanceId ?>" method="post">
+<input type="hidden" name="_csrf" value="<?= h(Csrf::token()) ?>">
+<section class="nb-card" aria-labelledby="nbi-data-title">
+<div class="nb-card-head"><div><h2 id="nbi-data-title">Dados da Instância</h2><p>Identificação e situação operacional do robô.</p></div><span class="nb-tag">Newbot</span></div>
+<div class="nb-grid">
+<label class="nb-field" for="nbi-internal-id"><span>ID interno do Newdoc</span><input class="nb-input" id="nbi-internal-id" value="#<?= $instanceId ?>" readonly></label>
+<label class="nb-field" for="instance_name"><span>Nome da Instância</span><input class="nb-input" id="instance_name" name="instance_name" maxlength="160" value="<?= h($instanceValues['instance_name'] ?? '') ?>" placeholder="Digite o nome da instância..."></label>
+<label class="nb-field" for="status"><span>Status <em>*</em></span><select class="nb-select" id="status" name="status" required><?php foreach ($instanceStatuses as $key => $label): ?><option value="<?= h($key) ?>" <?= ($instanceValues['status'] ?? 'ativo') === $key ? 'selected' : '' ?>><?= h($label) ?></option><?php endforeach; ?></select></label>
+<label class="nb-field" for="source_document_id"><span>Documento de Origem</span><select class="nb-select" id="source_document_id" name="source_document_id"><option value="">Sem vínculo</option><?php foreach ($documents as $document): ?><option value="<?= h($document['id']) ?>" <?= (string) ($instanceValues['source_document_id'] ?? '') === (string) $document['id'] ? 'selected' : '' ?>>#<?= h($document['id']) ?> · <?= h($document['original_filename']) ?><?= $document['company_id'] === null ? ' · sem empresa' : '' ?></option><?php endforeach; ?></select></label>
+<label class="nb-field" for="instance_code"><span>ID da Instância</span><input class="nb-input" id="instance_code" name="instance_code" maxlength="160" value="<?= h($instanceValues['instance_code'] ?? '') ?>" placeholder="Ex.: newtel-comercial"></label>
+<div class="nb-field"><label for="access_link"><span>Link de acesso</span></label><input class="nb-input" id="access_link" name="access_link" type="url" maxlength="500" value="<?= h($accessLink) ?>" placeholder="https://"><?php if ($accessLinkValid): ?><a class="nbi-open-link" href="<?= h($accessLink) ?>" target="_blank" rel="noopener noreferrer">Abrir link de acesso</a><?php endif; ?></div>
+<label class="nb-field nb-wide" for="notes"><span>Observações</span><textarea class="nb-textarea" id="notes" name="notes" rows="3" maxlength="2000" data-nb-counter="nb-count" aria-describedby="nb-count"><?= h($instanceValues['notes'] ?? '') ?></textarea><small class="nb-counter" id="nb-count"><?= h((string) mb_strlen((string) ($instanceValues['notes'] ?? ''))) ?>/2000</small></label>
+</div>
+<p class="nbi-meta">Criada em <?= h(date('d/m/Y H:i', strtotime($instance['created_at']))) ?> · Atualizada em <?= h(date('d/m/Y H:i', strtotime($instance['updated_at']))) ?></p>
 </section>
+</form>
+<?php else: ?>
+<section class="nb-card">
+<div class="nb-card-head"><div><h2>Dados da Instância</h2><p>Identificação e situação operacional do robô.</p></div><span class="nb-tag"><?= h($statusLabels[$instance['status']] ?? $instance['status']) ?></span></div>
+<dl class="nbi-dl">
+<div><dt>ID da instância</dt><dd><?= $instance['instance_code'] ? h($instance['instance_code']) : 'Não informado' ?></dd></div>
+<div><dt>Link de acesso</dt><dd><?php if ($accessLinkValid): ?><a class="nbi-open-link" href="<?= h($accessLink) ?>" target="_blank" rel="noopener noreferrer"><?= h($accessLink) ?></a><?php else: ?>Não informado<?php endif; ?></dd></div>
+<div><dt>Documento de origem</dt><dd><?= $instance['source_document_id'] ? 'Documento #' . h($instance['source_document_id']) : 'Não vinculado' ?></dd></div>
+<?php if ($instance['notes']): ?><div><dt>Observações</dt><dd><?= nl2br(h($instance['notes'])) ?></dd></div><?php endif; ?>
+</dl>
+</section>
+<?php endif; ?>
 
-<?php foreach ($sections as $sectionIndex => $section): ?>
-    <section class="panel newsic-data-panel">
-        <div class="panel-heading">
-            <div>
-                <h2><?= h($section['label']) ?></h2>
-                <p><?= h($section['record_count']) ?> registro(s)</p>
-            </div>
+<?php foreach ($layout as $group): ?>
+<div class="nbi-row nbi-row-<?= count($group) ?>">
+<?php foreach ($group as $type): ?>
+    <?php
+    if (!isset($byType[$type])) {
+        continue;
+    }
+    $section = $byType[$type];
+    $spec = $tables[$type];
+    ?>
+    <section class="nbi-card" aria-labelledby="nbi-title-<?= h($type) ?>">
+        <div class="nbi-card-head">
+            <h2 id="nbi-title-<?= h($type) ?>"><?= h($spec['title']) ?></h2>
             <?php if ($canManage): ?>
-                <span class="section-number"><?= h(str_pad((string) $section['record_count'], 2, '0', STR_PAD_LEFT)) ?></span>
+                <button class="nbi-add" type="button" data-dialog-open="nbi-new-<?= h($type) ?>"><?= $iconPlus ?><?= h($spec['add']) ?></button>
             <?php endif; ?>
         </div>
-
-        <?php if ($section['record_count'] === 0): ?>
-            <div class="empty-inline">Nenhum registro cadastrado.</div>
-        <?php endif; ?>
-
-        <?php if (!$canManage && $section['record_count'] > 0): ?>
-            <div class="empty-inline">Dados técnicos restritos a técnicos e administradores.</div>
-        <?php endif; ?>
-
-        <?php foreach ($section['records'] as $record): ?>
-            <?php
-                $recordId = (int) $record['values']['id'];
-                $summary = $record['values'][$section['summary_field']] ?? '';
-                if (($summary === null || $summary === '') && $section['type'] === 'supervisors') {
-                    $summary = $record['values']['login'] ?: ($record['values']['email'] ?? '');
-                }
-                $summary = $summary === null || $summary === '' ? 'Registro #' . $recordId : (string) $summary;
-                $matches = ($formState['section'] ?? null) === $section['type'] && (int) ($formState['record_id'] ?? 0) === $recordId;
-                $recordValues = $matches ? array_replace($record['values'], $formState['values'] ?? []) : $record['values'];
-            ?>
-            <?php if ($canManage): ?>
-                <details class="newsic-record" <?= $matches ? 'open' : '' ?>>
-                    <summary>
-                        <?= h($summary) ?> · #<?= h($recordId) ?>
-                        <?php if (!empty($record['values']['status'])): ?>
-                            · <?= h($statusLabels[$record['values']['status']] ?? $record['values']['status']) ?>
+        <?php if (!$canManage): ?>
+            <div class="nbi-note"><?= (int) $section['record_count'] > 0 ? 'Dados técnicos restritos a técnicos e administradores.' : 'Nenhum registro cadastrado.' ?></div>
+        <?php else: ?>
+            <div class="nbi-table-wrap">
+                <table class="nbi-table">
+                    <thead>
+                        <tr>
+                            <?php foreach ($spec['columns'] as $column): ?><th><?= h($column['label']) ?></th><?php endforeach; ?>
+                            <th class="nbi-actions-col">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if ($section['records'] === []): ?>
+                            <tr><td class="nbi-note" colspan="<?= count($spec['columns']) + 1 ?>">Nenhum registro cadastrado.</td></tr>
                         <?php endif; ?>
-                    </summary>
-                    <form action="/newbot/<?= h($instance['id']) ?>/dados" method="post" class="form-grid newsic-record-form">
-                        <input type="hidden" name="_csrf" value="<?= h(Csrf::token()) ?>">
-                        <input type="hidden" name="section" value="<?= h($section['type']) ?>">
-                        <input type="hidden" name="record_id" value="<?= h($recordId) ?>">
-                        <?php
-                            $fields = $section['fields'];
-                            $values = $recordValues;
-                            $secretFields = $record['secret_fields'];
-                            $prefix = 'record-' . $section['type'] . '-' . $recordId;
-                            require __DIR__ . '/_fields.php';
-                        ?>
-                        <div class="form-actions form-wide">
-                            <button class="button button-secondary" type="submit">Salvar registro</button>
-                        </div>
-                    </form>
-                    <form action="/newbot/<?= h($instance['id']) ?>/dados/excluir" method="post" class="newsic-record-form" onsubmit="return confirm('Excluir este registro permanentemente? Esta ação não pode ser desfeita.');">
-                        <input type="hidden" name="_csrf" value="<?= h(Csrf::token()) ?>">
-                        <input type="hidden" name="section" value="<?= h($section['type']) ?>">
-                        <input type="hidden" name="record_id" value="<?= h($recordId) ?>">
-                        <div class="form-actions form-wide">
-                            <button class="button button-danger" type="submit">Excluir registro</button>
-                        </div>
-                    </form>
-                </details>
-            <?php endif; ?>
-        <?php endforeach; ?>
-
-        <?php if ($canManage): ?>
-            <?php $matches = ($formState['section'] ?? null) === $section['type'] && ($formState['record_id'] ?? null) === null; ?>
-            <details class="newsic-record newsic-record-new" <?= $matches ? 'open' : '' ?>>
-                <summary>Adicionar <?= h(strtolower($section['label'])) ?></summary>
-                <form action="/newbot/<?= h($instance['id']) ?>/dados" method="post" class="form-grid newsic-record-form">
-                    <input type="hidden" name="_csrf" value="<?= h(Csrf::token()) ?>">
-                    <input type="hidden" name="section" value="<?= h($section['type']) ?>">
-                    <input type="hidden" name="record_id" value="">
-                    <?php
-                        $fields = $section['fields'];
-                        $values = $matches ? ($formState['values'] ?? []) : [];
-                        $secretFields = [];
-                        $prefix = 'new-' . $section['type'];
-                        require __DIR__ . '/_fields.php';
-                    ?>
-                    <div class="form-actions form-wide">
-                        <button class="button button-primary" type="submit">Adicionar registro</button>
-                    </div>
-                </form>
-            </details>
+                        <?php foreach ($section['records'] as $record): ?>
+                            <?php $recordId = (int) $record['values']['id']; ?>
+                            <tr>
+                                <?php foreach ($spec['columns'] as $column): ?><td><?= $cell($record, $column) ?></td><?php endforeach; ?>
+                                <td class="nbi-actions-col">
+                                    <div class="nbi-actions-cell">
+                                        <button class="nbi-icon nbi-icon-edit" type="button" data-dialog-open="nbi-edit-<?= h($type) ?>-<?= h($recordId) ?>" aria-label="Editar registro" title="Editar registro"><?= $iconEdit ?></button>
+                                        <form class="nbi-inline" action="/newbot/<?= $instanceId ?>/dados/excluir" method="post" data-confirm="Excluir este registro permanentemente? Esta ação não pode ser desfeita.">
+                                            <input type="hidden" name="_csrf" value="<?= h(Csrf::token()) ?>">
+                                            <input type="hidden" name="section" value="<?= h($type) ?>">
+                                            <input type="hidden" name="record_id" value="<?= h($recordId) ?>">
+                                            <button class="nbi-icon nbi-icon-danger" type="submit" aria-label="Excluir registro" title="Excluir registro"><?= $iconTrash ?></button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
         <?php endif; ?>
     </section>
+<?php endforeach; ?>
+</div>
 <?php endforeach; ?>
 
 <?php if ($canManage): ?>
@@ -190,3 +252,73 @@ $statusLabels = ['ativo' => 'Ativo', 'inativo' => 'Inativo', 'manutencao' => 'Ma
         <?php endif; ?>
     </section>
 <?php endif; ?>
+
+<div class="nb-actions nbi-sticky">
+    <a class="nb-btn nb-btn-quiet" href="/empresas/<?= $companyId ?>/newbot">Voltar</a>
+    <?php if ($canManage): ?>
+        <button class="nb-btn nb-btn-primary" type="submit" form="nbi-instance-form"><?= $iconSave ?>Salvar Instância</button>
+    <?php endif; ?>
+</div>
+
+<?php if ($canManage): ?>
+    <?php foreach ($byType as $type => $section): ?>
+        <?php $spec = $tables[$type]; ?>
+        <?php foreach ($section['records'] as $record): ?>
+            <?php
+            $recordId = (int) $record['values']['id'];
+            $matches = ($formState['section'] ?? null) === $type && (int) ($formState['record_id'] ?? 0) === $recordId;
+            $recordValues = $matches ? array_replace($record['values'], $formState['values'] ?? []) : $record['values'];
+            ?>
+            <dialog class="nbi-dialog" id="nbi-edit-<?= h($type) ?>-<?= h($recordId) ?>" aria-labelledby="nbi-edit-title-<?= h($type) ?>-<?= h($recordId) ?>" <?= $matches ? 'data-open' : '' ?>>
+                <form class="nbi-dialog-form" action="/newbot/<?= $instanceId ?>/dados" method="post">
+                    <input type="hidden" name="_csrf" value="<?= h(Csrf::token()) ?>">
+                    <input type="hidden" name="section" value="<?= h($type) ?>">
+                    <input type="hidden" name="record_id" value="<?= h($recordId) ?>">
+                    <div class="nbi-dialog-head"><h2 id="nbi-edit-title-<?= h($type) ?>-<?= h($recordId) ?>">Editar <?= h($spec['singular']) ?></h2></div>
+                    <?php if ($matches && $errors !== []): ?>
+                        <ul class="nbi-errors"><?php foreach ($errors as $error): ?><li><?= h($error) ?></li><?php endforeach; ?></ul>
+                    <?php endif; ?>
+                    <div class="nbi-dialog-body">
+                        <?php
+                        $fields = $section['fields'];
+                        $values = $recordValues;
+                        $secretFields = $record['secret_fields'];
+                        $prefix = 'record-' . $type . '-' . $recordId;
+                        require __DIR__ . '/_fields.php';
+                        ?>
+                    </div>
+                    <div class="nbi-dialog-foot">
+                        <button class="nb-btn nb-btn-quiet" type="button" data-dialog-close>Cancelar</button>
+                        <button class="nb-btn nb-btn-primary" type="submit">Salvar</button>
+                    </div>
+                </form>
+            </dialog>
+        <?php endforeach; ?>
+        <?php $newMatches = ($formState['section'] ?? null) === $type && ($formState['record_id'] ?? null) === null; ?>
+        <dialog class="nbi-dialog" id="nbi-new-<?= h($type) ?>" aria-labelledby="nbi-new-title-<?= h($type) ?>" <?= $newMatches ? 'data-open' : '' ?>>
+            <form class="nbi-dialog-form" action="/newbot/<?= $instanceId ?>/dados" method="post">
+                <input type="hidden" name="_csrf" value="<?= h(Csrf::token()) ?>">
+                <input type="hidden" name="section" value="<?= h($type) ?>">
+                <input type="hidden" name="record_id" value="">
+                <div class="nbi-dialog-head"><h2 id="nbi-new-title-<?= h($type) ?>">Adicionar <?= h($spec['singular']) ?></h2></div>
+                <?php if ($newMatches && $errors !== []): ?>
+                    <ul class="nbi-errors"><?php foreach ($errors as $error): ?><li><?= h($error) ?></li><?php endforeach; ?></ul>
+                <?php endif; ?>
+                <div class="nbi-dialog-body">
+                    <?php
+                    $fields = $section['fields'];
+                    $values = $newMatches ? ($formState['values'] ?? []) : [];
+                    $secretFields = [];
+                    $prefix = 'new-' . $type;
+                    require __DIR__ . '/_fields.php';
+                    ?>
+                </div>
+                <div class="nbi-dialog-foot">
+                    <button class="nb-btn nb-btn-quiet" type="button" data-dialog-close>Cancelar</button>
+                    <button class="nb-btn nb-btn-primary" type="submit">Adicionar</button>
+                </div>
+            </form>
+        </dialog>
+    <?php endforeach; ?>
+<?php endif; ?>
+</div>
