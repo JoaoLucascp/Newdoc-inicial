@@ -70,6 +70,17 @@ $iconPlus = $svg('<path d="M12 5v14M5 12h14"/>');
 $iconEdit = $svg('<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>');
 $iconTrash = $svg('<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/>');
 $iconSave = $svg('<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/>');
+$iconDb = $svg('<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>');
+$iconExternal = $svg('<path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>');
+$iconHeadset = $svg('<path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="3" y="14" width="4" height="6" rx="1"/><rect x="17" y="14" width="4" height="6" rx="1"/>');
+$iconUsers = $svg('<circle cx="9" cy="8" r="3"/><path d="M3 20v-1a6 6 0 0 1 12 0v1"/><circle cx="17" cy="9" r="2.5"/><path d="M17 14a5 5 0 0 1 4 5v1"/>');
+$iconUser = $svg('<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0 1 16 0v1"/>');
+$iconLink = $svg('<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>');
+$iconKey = $svg('<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3"/>');
+$titleIcons = [
+    'channels' => $iconHeadset, 'administrators' => $iconUsers, 'supervisors' => $iconUsers,
+    'responsibles' => $iconUser, 'integrations' => $iconLink, 'attendants' => $iconHeadset, 'authentications' => $iconKey,
+];
 $cell = static function (array $record, array $column) use ($statusLabels): string {
     $values = $record['values'];
     $kind = $column['kind'] ?? 'text';
@@ -110,7 +121,7 @@ $accessLink = (string) ($instanceValues['access_link'] ?? '');
 $accessLinkValid = $accessLink !== '' && preg_match('#^https?://#i', $accessLink) === 1;
 ?>
 <link rel="stylesheet" href="/assets/newbot-form.css?v=2">
-<link rel="stylesheet" href="/assets/newbot-instance.css?v=1">
+<link rel="stylesheet" href="/assets/newbot-instance.css?v=2">
 <script src="/assets/newbot-form.js?v=2" defer></script>
 <script src="/assets/newbot-instance.js?v=1" defer></script>
 <div class="nb-page">
@@ -132,14 +143,14 @@ $accessLinkValid = $accessLink !== '' && preg_match('#^https?://#i', $accessLink
 <form id="nbi-instance-form" action="/newbot/<?= $instanceId ?>" method="post">
 <input type="hidden" name="_csrf" value="<?= h(Csrf::token()) ?>">
 <section class="nb-card" aria-labelledby="nbi-data-title">
-<div class="nb-card-head"><div><h2 id="nbi-data-title">Dados da Instância</h2><p>Identificação e situação operacional do robô.</p></div><span class="nb-tag">Newbot</span></div>
+<div class="nb-card-head"><div class="nbi-head-main"><span class="nbi-title-icon" aria-hidden="true"><?= $iconDb ?></span><div><h2 id="nbi-data-title">Dados da Instância</h2><p>Identificação e situação operacional do robô.</p></div></div></div>
 <div class="nb-grid">
 <label class="nb-field" for="nbi-internal-id"><span>ID interno do Newdoc</span><input class="nb-input" id="nbi-internal-id" value="#<?= $instanceId ?>" readonly></label>
 <label class="nb-field" for="instance_name"><span>Nome da Instância</span><input class="nb-input" id="instance_name" name="instance_name" maxlength="160" value="<?= h($instanceValues['instance_name'] ?? '') ?>" placeholder="Digite o nome da instância..."></label>
 <label class="nb-field" for="status"><span>Status <em>*</em></span><select class="nb-select" id="status" name="status" required><?php foreach ($instanceStatuses as $key => $label): ?><option value="<?= h($key) ?>" <?= ($instanceValues['status'] ?? 'ativo') === $key ? 'selected' : '' ?>><?= h($label) ?></option><?php endforeach; ?></select></label>
 <label class="nb-field" for="source_document_id"><span>Documento de Origem</span><select class="nb-select" id="source_document_id" name="source_document_id"><option value="">Sem vínculo</option><?php foreach ($documents as $document): ?><option value="<?= h($document['id']) ?>" <?= (string) ($instanceValues['source_document_id'] ?? '') === (string) $document['id'] ? 'selected' : '' ?>>#<?= h($document['id']) ?> · <?= h($document['original_filename']) ?><?= $document['company_id'] === null ? ' · sem empresa' : '' ?></option><?php endforeach; ?></select></label>
 <label class="nb-field" for="instance_code"><span>ID da Instância</span><input class="nb-input" id="instance_code" name="instance_code" maxlength="160" value="<?= h($instanceValues['instance_code'] ?? '') ?>" placeholder="Ex.: newtel-comercial"></label>
-<div class="nb-field"><label for="access_link"><span>Link de acesso</span></label><input class="nb-input" id="access_link" name="access_link" type="url" maxlength="500" value="<?= h($accessLink) ?>" placeholder="https://"><?php if ($accessLinkValid): ?><a class="nbi-open-link" href="<?= h($accessLink) ?>" target="_blank" rel="noopener noreferrer">Abrir link de acesso</a><?php endif; ?></div>
+<div class="nb-field"><label for="access_link"><span>Link de acesso</span></label><input class="nb-input" id="access_link" name="access_link" type="url" maxlength="500" value="<?= h($accessLink) ?>" placeholder="https://"><?php if ($accessLinkValid): ?><a class="nbi-open-link" href="<?= h($accessLink) ?>" target="_blank" rel="noopener noreferrer" aria-label="Abrir link de acesso" title="Abrir link de acesso"><?= $iconExternal ?> Abrir link</a><?php endif; ?></div>
 <label class="nb-field nb-wide" for="notes"><span>Observações</span><textarea class="nb-textarea" id="notes" name="notes" rows="3" maxlength="2000" data-nb-counter="nb-count" aria-describedby="nb-count"><?= h($instanceValues['notes'] ?? '') ?></textarea><small class="nb-counter" id="nb-count"><?= h((string) mb_strlen((string) ($instanceValues['notes'] ?? ''))) ?>/2000</small></label>
 </div>
 <p class="nbi-meta">Criada em <?= h(date('d/m/Y H:i', strtotime($instance['created_at']))) ?> · Atualizada em <?= h(date('d/m/Y H:i', strtotime($instance['updated_at']))) ?></p>
@@ -169,7 +180,7 @@ $accessLinkValid = $accessLink !== '' && preg_match('#^https?://#i', $accessLink
     ?>
     <section class="nbi-card" aria-labelledby="nbi-title-<?= h($type) ?>">
         <div class="nbi-card-head">
-            <h2 id="nbi-title-<?= h($type) ?>"><?= h($spec['title']) ?></h2>
+            <h2 id="nbi-title-<?= h($type) ?>"><span class="nbi-title-icon" aria-hidden="true"><?= $titleIcons[$type] ?? '' ?></span><?= h($spec['title']) ?></h2>
             <?php if ($canManage): ?>
                 <button class="nbi-add" type="button" data-dialog-open="nbi-new-<?= h($type) ?>"><?= $iconPlus ?><?= h($spec['add']) ?></button>
             <?php endif; ?>
