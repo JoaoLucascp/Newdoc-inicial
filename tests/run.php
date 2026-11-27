@@ -27,6 +27,7 @@ try {
         '001_initial_schema.sql',
         '002_newsic_schema.sql',
         '003_newbot_schema.sql',
+        '004_newbot_management.sql',
     ];
 
     expect(
@@ -270,6 +271,7 @@ try {
         'newsic_pdf_report.php',
         'newsic_export_http.php',
         'newsic_pdf_pagination.php',
+        'newbot_migration_004.php',
     ] as $suite) {
         $process = proc_open(
             [PHP_BINARY, __DIR__ . DIRECTORY_SEPARATOR . $suite],
