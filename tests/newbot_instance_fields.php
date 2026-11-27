@@ -40,6 +40,8 @@ try {
     $pdo->exec("INSERT INTO newbot_channels (id, newbot_instance_id, channel_name, status, created_at, updated_at) VALUES (1, 1, 'Canal A', 'ativo', '$at', '$at')");
     $pdo->exec("INSERT INTO newbot_supervisors (id, newbot_instance_id, login, created_at, updated_at) VALUES (1, 1, 'sup-sem-nome', '$at', '$at')");
     $controller = new NewbotController($pdo);
+    $assert(!method_exists($controller, 'edit'), 'tela antiga de edição removida do controller');
+    $assert(!str_contains((string) file_get_contents(dirname(__DIR__) . '/app/Application.php'), '/newbot/([1-9][0-9]*)/editar'), 'rota antiga /newbot/{id}/editar removida');
     $post = static fn (array $extra): array => $extra + [
         'instance_name' => 'Nova', 'status' => 'inativo', 'source_document_id' => '',
         'notes' => '', 'instance_code' => '', 'access_link' => '',
