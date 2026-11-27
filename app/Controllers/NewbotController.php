@@ -18,6 +18,7 @@ use RuntimeException;
 final class NewbotController
 {
     private const PAGE_SIZE = 15;
+    private const MAX_CHILDREN_PER_SECTION = 50;
     private const INSTANCE_STATUSES = ['ativo', 'inativo', 'manutencao'];
     private const CHILD_SECTIONS = [
         'channels' => [
@@ -203,6 +204,8 @@ final class NewbotController
             return View::render('errors/404', [], 404);
         }
         [$data, $errors] = $this->validatedInstanceInput($companyId);
+        [$children, $childErrors] = $this->validatedChildrenInput();
+        $errors += $childErrors;
         if ($errors !== []) {
             return $this->renderInstanceForm($company, $data, $errors, 'create', 422);
         }
@@ -224,6 +227,9 @@ final class NewbotController
             ]);
             $id = (int) $this->pdo->lastInsertId();
             Audit::record($this->pdo, 'criacao', 'newbot_instances', $id, 'record', $companyId);
+            foreach ($children as $child) {
+                $this->insertChild(self::CHILD_SECTIONS[$child['type']], $child['data'], $id, $companyId, $now);
+            }
             $this->pdo->commit();
         } catch (PDOException $exception) {
             if ($this->pdo->inTransaction()) {
@@ -393,19 +399,7 @@ final class NewbotController
         $this->pdo->beginTransaction();
         try {
             if ($existing === null) {
-                $columns = array_merge(array_keys($data), ['newbot_instance_id', 'created_at', 'updated_at']);
-                $statement = $this->pdo->prepare(
-                    'INSERT INTO ' . $definition['table'] . ' (' . implode(', ', $columns) . ')
-                     VALUES (' . implode(', ', array_map(static fn (string $column): string => ':' . $column, $columns)) . ')'
-                );
-                $statement->execute($data + [
-                    'newbot_instance_id' => $instanceId,
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ]);
-                $recordId = (int) $this->pdo->lastInsertId();
-                Audit::record($this->pdo, 'criacao', $definition['table'], $recordId, 'record', $companyId);
-                $this->auditChildSecrets($definition, $data, $recordId, $companyId, 'criacao');
+                $recordId = $this->insertChild($definition, $data, $instanceId, $companyId, $now);
             } else {
                 $assignments = array_map(static fn (string $column): string => $column . ' = :' . $column, array_keys($data));
                 $assignments[] = 'updated_at = :updated_at';
@@ -664,6 +658,73 @@ final class NewbotController
         }
 
         return [$data, $errors, $values];
+    }
+
+    private function validatedChildrenInput(): array
+    {
+        $submitted = $_POST['children'] ?? [];
+        unset($_POST['children']);
+        if (!is_array($submitted)) {
+            return [[], ['children' => 'Dados dos registros inválidos.']];
+        }
+        $children = [];
+        $errors = [];
+        $backup = $_POST;
+        try {
+            foreach ($submitted as $type => $rows) {
+                if (!is_string($type) || !isset(self::CHILD_SECTIONS[$type]) || !is_array($rows)) {
+                    $errors['children'] = 'Dados dos registros inválidos.';
+                    continue;
+                }
+                $definition = self::CHILD_SECTIONS[$type];
+                if (count($rows) > self::MAX_CHILDREN_PER_SECTION) {
+                    $errors['children.' . $type] = $definition['label'] . ': o limite é de '
+                        . self::MAX_CHILDREN_PER_SECTION . ' registros por envio.';
+                    continue;
+                }
+                $position = 0;
+                foreach ($rows as $row) {
+                    $position++;
+                    if (!is_array($row)) {
+                        $errors['children.' . $type . '.' . $position] = $definition['label'] . ' #' . $position . ': dados inválidos.';
+                        continue;
+                    }
+                    $filled = array_filter($row, static fn (mixed $value): bool => !is_string($value) || trim($value) !== '');
+                    if ($filled === []) {
+                        continue;
+                    }
+                    $_POST = $row;
+                    [$data, $rowErrors] = $this->validatedChildInput($definition, null);
+                    foreach ($rowErrors as $field => $message) {
+                        $errors['children.' . $type . '.' . $position . '.' . $field] = $definition['label'] . ' #' . $position . ': ' . $message;
+                    }
+                    $children[] = ['type' => $type, 'data' => $data];
+                }
+            }
+        } finally {
+            $_POST = $backup;
+        }
+
+        return [$children, $errors];
+    }
+
+    private function insertChild(array $definition, array $data, int $instanceId, int $companyId, string $now): int
+    {
+        $columns = array_merge(array_keys($data), ['newbot_instance_id', 'created_at', 'updated_at']);
+        $statement = $this->pdo->prepare(
+            'INSERT INTO ' . $definition['table'] . ' (' . implode(', ', $columns) . ')
+             VALUES (' . implode(', ', array_map(static fn (string $column): string => ':' . $column, $columns)) . ')'
+        );
+        $statement->execute($data + [
+            'newbot_instance_id' => $instanceId,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+        $recordId = (int) $this->pdo->lastInsertId();
+        Audit::record($this->pdo, 'criacao', $definition['table'], $recordId, 'record', $companyId);
+        $this->auditChildSecrets($definition, $data, $recordId, $companyId, 'criacao');
+
+        return $recordId;
     }
 
     private function loadChildSections(int $instanceId, bool $includeRecords): array
